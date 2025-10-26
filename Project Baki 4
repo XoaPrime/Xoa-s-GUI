@@ -567,1295 +567,1642 @@ local function createToggleButton(parent, text, color)
 end
 
 --------------------------------------------------------------------------------
--- 1) AUTO SKILL SECTION
+-- 1) AUTO SKILL SECTION BUILDER
 --------------------------------------------------------------------------------
-createSectionTitle(autoSkillFrame, "Auto Skill", "⚔️")
+local function buildAutoSkillTab()
+    createSectionTitle(autoSkillFrame, "Auto Skill", "⚔️")
 
-local autoSkillEnabled = false
-local skillRadius = 100
-local skillDelay = 0.1 
-local autoSkillTargetConnection = nil
-local autoSkillAttackConnection = nil
-local currentSkillTargets = {}
-local displayedSkillTargetButtons = {}
+    local autoSkillEnabled = false
+    local skillRadius = 100
+    local skillBurstCount = 5
+    local autoSkillTargetConnection = nil
+    local autoSkillAttackConnection = nil
+    local currentSkillTargets = {}
+    local displayedSkillTargetButtons = {}
+    local useShortCooldown = true
 
--- Master Toggle
-local AutoSkillToggle = Instance.new("TextButton")
-AutoSkillToggle.Position = UDim2.new(0, 10, 0, 60)
-AutoSkillToggle.Size = UDim2.new(0, 250, 0, 38)
-AutoSkillToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-AutoSkillToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-AutoSkillToggle.Font = Enum.Font.GothamSemibold
-AutoSkillToggle.TextSize = 14
-AutoSkillToggle.Text = "⚔️ Enable Auto Skill: OFF"
-AutoSkillToggle.BorderSizePixel = 0
-AutoSkillToggle.ZIndex = 5
-AutoSkillToggle.Parent = autoSkillFrame
-addCorner(AutoSkillToggle, 8)
-addStroke(AutoSkillToggle, Color3.fromRGB(255, 100, 50), 1, 0.8)
+    -- Master Toggle
+    local AutoSkillToggle = Instance.new("TextButton")
+    AutoSkillToggle.Position = UDim2.new(0, 10, 0, 60)
+    AutoSkillToggle.Size = UDim2.new(0, 250, 0, 38)
+    AutoSkillToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    AutoSkillToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    AutoSkillToggle.Font = Enum.Font.GothamSemibold
+    AutoSkillToggle.TextSize = 14
+    AutoSkillToggle.Text = "⚔️ Enable Auto Skill: OFF"
+    AutoSkillToggle.BorderSizePixel = 0
+    AutoSkillToggle.ZIndex = 5
+    AutoSkillToggle.Parent = autoSkillFrame
+    addCorner(AutoSkillToggle, 8)
+    addStroke(AutoSkillToggle, Color3.fromRGB(255, 100, 50), 1, 0.8)
 
-local as_originalSize = AutoSkillToggle.Size
-local as_hoverSize = UDim2.new(as_originalSize.X.Scale, as_originalSize.X.Offset + 2, as_originalSize.Y.Scale, as_originalSize.Y.Offset + 2)
-AutoSkillToggle.MouseEnter:Connect(function() tweenProperty(AutoSkillToggle, {Size = as_hoverSize}, 0.15, Enum.EasingStyle.Quad) end)
-AutoSkillToggle.MouseLeave:Connect(function() tweenProperty(AutoSkillToggle, {Size = as_originalSize}, 0.15, Enum.EasingStyle.Quad) end)
+    local as_originalSize = AutoSkillToggle.Size
+    local as_hoverSize = UDim2.new(as_originalSize.X.Scale, as_originalSize.X.Offset + 2, as_originalSize.Y.Scale, as_originalSize.Y.Offset + 2)
+    AutoSkillToggle.MouseEnter:Connect(function() tweenProperty(AutoSkillToggle, {Size = as_hoverSize}, 0.15, Enum.EasingStyle.Quad) end)
+    AutoSkillToggle.MouseLeave:Connect(function() tweenProperty(AutoSkillToggle, {Size = as_originalSize}, 0.15, Enum.EasingStyle.Quad) end)
 
--- Radius Slider
-local SkillRadiusContainer = Instance.new("Frame")
-SkillRadiusContainer.Size = UDim2.new(0, 250, 0, 70)
-SkillRadiusContainer.Position = UDim2.new(0, 280, 0, 60)
-SkillRadiusContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-SkillRadiusContainer.BorderSizePixel = 0
-SkillRadiusContainer.ZIndex = 4
-SkillRadiusContainer.Parent = autoSkillFrame
-addCorner(SkillRadiusContainer, 10)
-addStroke(SkillRadiusContainer, Color3.fromRGB(255, 100, 50), 1, 0.7)
+    -- Radius Slider
+    local SkillRadiusContainer = Instance.new("Frame")
+    SkillRadiusContainer.Size = UDim2.new(0, 250, 0, 70)
+    SkillRadiusContainer.Position = UDim2.new(0, 280, 0, 60)
+    SkillRadiusContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    SkillRadiusContainer.BorderSizePixel = 0
+    SkillRadiusContainer.ZIndex = 4
+    SkillRadiusContainer.Parent = autoSkillFrame
+    addCorner(SkillRadiusContainer, 10)
+    addStroke(SkillRadiusContainer, Color3.fromRGB(255, 100, 50), 1, 0.7)
 
-local SkillRadiusLabel = Instance.new("TextLabel")
-SkillRadiusLabel.Size = UDim2.new(1, -10, 0, 25)
-SkillRadiusLabel.Position = UDim2.new(0, 5, 0, 5)
-SkillRadiusLabel.BackgroundTransparency = 1
-SkillRadiusLabel.Text = "🎯 Radius: 100"
-SkillRadiusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-SkillRadiusLabel.Font = Enum.Font.GothamBold
-SkillRadiusLabel.TextSize = 14
-SkillRadiusLabel.TextXAlignment = Enum.TextXAlignment.Left
-SkillRadiusLabel.ZIndex = 5
-SkillRadiusLabel.Parent = SkillRadiusContainer
+    local SkillRadiusLabel = Instance.new("TextLabel")
+    SkillRadiusLabel.Size = UDim2.new(1, -10, 0, 25)
+    SkillRadiusLabel.Position = UDim2.new(0, 5, 0, 5)
+    SkillRadiusLabel.BackgroundTransparency = 1
+    SkillRadiusLabel.Text = "🎯 Radius: 100"
+    SkillRadiusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SkillRadiusLabel.Font = Enum.Font.GothamBold
+    SkillRadiusLabel.TextSize = 14
+    SkillRadiusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    SkillRadiusLabel.ZIndex = 5
+    SkillRadiusLabel.Parent = SkillRadiusContainer
 
-local SkillRadiusSlider = Instance.new("TextButton")
-SkillRadiusSlider.Size = UDim2.new(1, -20, 0, 25)
-SkillRadiusSlider.Position = UDim2.new(0, 10, 0, 35)
-SkillRadiusSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-SkillRadiusSlider.Text = "" -- Removed "Button" text
-SkillRadiusSlider.BorderSizePixel = 0
-SkillRadiusSlider.ZIndex = 5
-SkillRadiusSlider.Parent = SkillRadiusContainer
-addCorner(SkillRadiusSlider, 12)
+    local SkillRadiusSlider = Instance.new("TextButton")
+    SkillRadiusSlider.Size = UDim2.new(1, -20, 0, 25)
+    SkillRadiusSlider.Position = UDim2.new(0, 10, 0, 35)
+    SkillRadiusSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    SkillRadiusSlider.Text = ""
+    SkillRadiusSlider.BorderSizePixel = 0
+    SkillRadiusSlider.ZIndex = 5
+    SkillRadiusSlider.Parent = SkillRadiusContainer
+    addCorner(SkillRadiusSlider, 12)
 
-local SkillRadiusFill = Instance.new("Frame")
-SkillRadiusFill.Size = UDim2.new(100/200, 0, 1, 0)
-SkillRadiusFill.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
-SkillRadiusFill.BorderSizePixel = 0
-SkillRadiusFill.ZIndex = 6
-SkillRadiusFill.Parent = SkillRadiusSlider
-addCorner(SkillRadiusFill, 12)
+    local SkillRadiusFill = Instance.new("Frame")
+    SkillRadiusFill.Size = UDim2.new(100/200, 0, 1, 0)
+    SkillRadiusFill.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
+    SkillRadiusFill.BorderSizePixel = 0
+    SkillRadiusFill.ZIndex = 6
+    SkillRadiusFill.Parent = SkillRadiusSlider
+    addCorner(SkillRadiusFill, 12)
 
-local SkillRadiusKnob = Instance.new("Frame")
-SkillRadiusKnob.Size = UDim2.new(0, 20, 0, 20)
-SkillRadiusKnob.AnchorPoint = Vector2.new(0.5, 0.5)
-SkillRadiusKnob.Position = UDim2.new(100/200, 0, 0.5, 0)
-SkillRadiusKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-SkillRadiusKnob.BorderSizePixel = 0
-SkillRadiusKnob.ZIndex = 7
-SkillRadiusKnob.Parent = SkillRadiusSlider
-addCorner(SkillRadiusKnob, 50)
-addShadow(SkillRadiusKnob)
+    local SkillRadiusKnob = Instance.new("Frame")
+    SkillRadiusKnob.Size = UDim2.new(0, 20, 0, 20)
+    SkillRadiusKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+    SkillRadiusKnob.Position = UDim2.new(100/200, 0, 0.5, 0)
+    SkillRadiusKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    SkillRadiusKnob.BorderSizePixel = 0
+    SkillRadiusKnob.ZIndex = 7
+    SkillRadiusKnob.Parent = SkillRadiusSlider
+    addCorner(SkillRadiusKnob, 50)
+    addShadow(SkillRadiusKnob)
 
 
-SkillRadiusSlider.MouseButton1Down:Connect(function()
-    local mouse = player:GetMouse()
-    local dragging = true
-    local function updateSlider()
-        if not dragging then return end
-        local relativeX = math.clamp((mouse.X - SkillRadiusSlider.AbsolutePosition.X) / SkillRadiusSlider.AbsoluteSize.X, 0, 1)
-        SkillRadiusFill.Size = UDim2.new(relativeX, 0, 1, 0)
-        SkillRadiusKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
-        skillRadius = math.floor(10 + (relativeX * 190))
-        SkillRadiusLabel.Text = "🎯 Radius: " .. skillRadius
-    end
-    local moveConnection = mouse.Move:Connect(updateSlider)
-    local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
-    updateSlider()
-end)
-
--- Speed Slider (Re-added)
-local SkillSpeedContainer = Instance.new("Frame")
-SkillSpeedContainer.Size = UDim2.new(0, 250, 0, 70)
-SkillSpeedContainer.Position = UDim2.new(0, 280, 0, 140)
-SkillSpeedContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-SkillSpeedContainer.BorderSizePixel = 0
-SkillSpeedContainer.ZIndex = 4
-SkillSpeedContainer.Parent = autoSkillFrame
-addCorner(SkillSpeedContainer, 10)
-addStroke(SkillSpeedContainer, Color3.fromRGB(255, 100, 50), 1, 0.7)
-
-local SkillSpeedLabel = Instance.new("TextLabel")
-SkillSpeedLabel.Size = UDim2.new(1, -10, 0, 25)
-SkillSpeedLabel.Position = UDim2.new(0, 5, 0, 5)
-SkillSpeedLabel.BackgroundTransparency = 1
-SkillSpeedLabel.Text = "⚡ Speed: 0.10s"
-SkillSpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-SkillSpeedLabel.Font = Enum.Font.GothamBold
-SkillSpeedLabel.TextSize = 14
-SkillSpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
-SkillSpeedLabel.ZIndex = 5
-SkillSpeedLabel.Parent = SkillSpeedContainer
-
-local SkillSpeedSlider = Instance.new("TextButton")
-SkillSpeedSlider.Size = UDim2.new(1, -20, 0, 25)
-SkillSpeedSlider.Position = UDim2.new(0, 10, 0, 35)
-SkillSpeedSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-SkillSpeedSlider.Text = "" -- Removed "Button" text
-SkillSpeedSlider.BorderSizePixel = 0
-SkillSpeedSlider.ZIndex = 5
-SkillSpeedSlider.Parent = SkillSpeedContainer
-addCorner(SkillSpeedSlider, 12)
-
-local SkillSpeedFill = Instance.new("Frame")
-SkillSpeedFill.Size = UDim2.new(0.2, 0, 1, 0)
-SkillSpeedFill.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
-SkillSpeedFill.BorderSizePixel = 0
-SkillSpeedFill.ZIndex = 6
-SkillSpeedFill.Parent = SkillSpeedSlider
-addCorner(SkillSpeedFill, 12)
-
-local SkillSpeedKnob = Instance.new("Frame")
-SkillSpeedKnob.Size = UDim2.new(0, 20, 0, 20)
-SkillSpeedKnob.AnchorPoint = Vector2.new(0.5, 0.5)
-SkillSpeedKnob.Position = UDim2.new(0.2, 0, 0.5, 0)
-SkillSpeedKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-SkillSpeedKnob.BorderSizePixel = 0
-SkillSpeedKnob.ZIndex = 7
-SkillSpeedKnob.Parent = SkillSpeedSlider
-addCorner(SkillSpeedKnob, 50)
-addShadow(SkillSpeedKnob)
-
-SkillSpeedSlider.MouseButton1Down:Connect(function()
-    local mouse = player:GetMouse()
-    local dragging = true
-    local function updateSlider()
-        if not dragging then return end
-        local relativeX = math.clamp((mouse.X - SkillSpeedSlider.AbsolutePosition.X) / SkillSpeedSlider.AbsoluteSize.X, 0, 1)
-        SkillSpeedFill.Size = UDim2.new(relativeX, 0, 1, 0)
-        SkillSpeedKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
-        skillDelay = math.floor(relativeX * 50) / 100
-        SkillSpeedLabel.Text = string.format("⚡ Speed: %.2fs", skillDelay)
-    end
-    local moveConnection = mouse.Move:Connect(updateSlider)
-    local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
-    updateSlider()
-end)
-
--- Target List
-local SkillTargetScroll, _ = createScrollFrame(autoSkillFrame, 108, 315)
-SkillTargetScroll.BackgroundTransparency = 0
-SkillTargetScroll.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-addCorner(SkillTargetScroll, 10)
-
-AutoSkillToggle.MouseButton1Click:Connect(function()
-    autoSkillEnabled = not autoSkillEnabled
-    AutoSkillToggle.Text = autoSkillEnabled and "⚔️ Enable Auto Skill: ON" or "⚔️ Enable Auto Skill: OFF"
-    tweenProperty(AutoSkillToggle, {BackgroundColor3 = autoSkillEnabled and Color3.fromRGB(255, 100, 50) or Color3.fromRGB(50, 50, 70)}, 0.2)
-
-    if autoSkillEnabled then
-        autoSkillTargetConnection = RunService.Heartbeat:Connect(function()
-            local foundTargets = {}
-            local myHrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if not myHrp then return end
-
-            local gamePlayers = workspace.Game:FindFirstChild("Players")
-            if not gamePlayers then return end
-
-            for _, targetModel in ipairs(gamePlayers:GetChildren()) do
-                local targetHrp = targetModel:FindFirstChild("HumanoidRootPart")
-                local targetHum = targetModel:FindFirstChildOfClass("Humanoid")
-                if targetHrp and targetHum and targetHum.Health > 0 and targetModel ~= player.Character then
-                    if (myHrp.Position - targetHrp.Position).Magnitude <= skillRadius then
-                        foundTargets[targetHum] = true
-                    end
-                end
-            end
-            
-            for targetHum, _ in pairs(foundTargets) do
-                if not displayedSkillTargetButtons[targetHum] then
-                    local targetLabel = Instance.new("TextLabel")
-                    targetLabel.Size = UDim2.new(1, 0, 0, 30)
-                    targetLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-                    targetLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-                    targetLabel.Font = Enum.Font.Gotham
-                    targetLabel.TextSize = 14
-                    targetLabel.Text = targetHum.Parent.Name
-                    targetLabel.Parent = SkillTargetScroll
-                    addCorner(targetLabel, 6)
-                    displayedSkillTargetButtons[targetHum] = targetLabel
-                end
-            end
-            
-            for targetHum, button in pairs(displayedSkillTargetButtons) do
-                if not foundTargets[targetHum] or not targetHum or targetHum.Health <= 0 or not targetHum.Parent then
-                    button:Destroy()
-                    displayedSkillTargetButtons[targetHum] = nil
-                end
-            end
-
-            currentSkillTargets = foundTargets
-        end)
-
-        autoSkillAttackConnection = task.spawn(function()
-            while autoSkillEnabled do
-                for targetHum, _ in pairs(currentSkillTargets) do
-                    if autoSkillEnabled and targetHum and targetHum.Health > 0 then
-                        pcall(function()
-                            local combatRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ClientToServer"):WaitForChild("BasicCombat")
-                            if combatRemote then
-                                combatRemote:FireServer("Skill", targetHum)
-                            end
-                        end)
-                        task.wait(skillDelay) 
-                    else
-                        task.wait() 
-                    end
-                end
-                if not next(currentSkillTargets) then
-                    task.wait(0.1)
-                end
-            end
-        end)
-
-    else
-        if autoSkillTargetConnection then autoSkillTargetConnection:Disconnect(); autoSkillTargetConnection = nil end
-        if autoSkillAttackConnection then task.cancel(autoSkillAttackConnection); autoSkillAttackConnection = nil end
-        for _, button in pairs(displayedSkillTargetButtons) do button:Destroy() end
-        displayedSkillTargetButtons = {}; currentSkillTargets = {}
-    end
-end)
---------------------------------------------------------------------------------
--- 2) STYLES SECTION
---------------------------------------------------------------------------------
-createSectionTitle(stylesFrame, "Styles", "🥋")
-
-local StyleSearchBar = createSearchBar(stylesFrame, "🔍 Search Trainers...", 60)
-local TrainerScroll, TrainerUIList = createScrollFrame(stylesFrame, 105, 320)
-
-local function equipStyle(trainerName)
-    pcall(function()
-        local questRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ClientToServer"):WaitForChild("Quest")
-        questRemote:InvokeServer(trainerName)
+    SkillRadiusSlider.MouseButton1Down:Connect(function()
+        local mouse = player:GetMouse()
+        local dragging = true
+        local function updateSlider()
+            if not dragging then return end
+            local relativeX = math.clamp((mouse.X - SkillRadiusSlider.AbsolutePosition.X) / SkillRadiusSlider.AbsoluteSize.X, 0, 1)
+            SkillRadiusFill.Size = UDim2.new(relativeX, 0, 1, 0)
+            SkillRadiusKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
+            skillRadius = math.floor(10 + (relativeX * 190))
+            SkillRadiusLabel.Text = "🎯 Radius: " .. skillRadius
+        end
+        local moveConnection = mouse.Move:Connect(updateSlider)
+        local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
+        updateSlider()
     end)
-end
+    
+    -- Burst Count Slider
+    local SkillCountContainer = Instance.new("Frame")
+    SkillCountContainer.Size = UDim2.new(0, 250, 0, 70)
+    SkillCountContainer.Position = UDim2.new(0, 280, 0, 140)
+    SkillCountContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    SkillCountContainer.BorderSizePixel = 0
+    SkillCountContainer.ZIndex = 4
+    SkillCountContainer.Parent = autoSkillFrame
+    addCorner(SkillCountContainer, 10)
+    addStroke(SkillCountContainer, Color3.fromRGB(255, 100, 50), 1, 0.7)
 
-local trainersFolder = workspace.Game:FindFirstChild("Trainers")
-if trainersFolder then
-    for _, trainer in ipairs(trainersFolder:GetChildren()) do
-        if trainer:IsA("Model") or trainer:IsA("Folder") then
-            local tName = trainer.Name
-            local tBtn = createToggleButton(TrainerScroll, tName, Color3.fromRGB(80, 50, 100))
-            
-            tBtn.MouseButton1Click:Connect(function()
-                equipStyle(tName)
-                tweenProperty(tBtn, {BackgroundColor3 = Color3.fromRGB(150, 80, 180)}, 0.15)
-                task.wait(0.2)
-                tweenProperty(tBtn, {BackgroundColor3 = Color3.fromRGB(80, 50, 100)}, 0.15)
+    local SkillCountLabel = Instance.new("TextLabel")
+    SkillCountLabel.Size = UDim2.new(1, -10, 0, 25)
+    SkillCountLabel.Position = UDim2.new(0, 5, 0, 5)
+    SkillCountLabel.BackgroundTransparency = 1
+    SkillCountLabel.Text = "💣 Burst Hits: 5"
+    SkillCountLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SkillCountLabel.Font = Enum.Font.GothamBold
+    SkillCountLabel.TextSize = 14
+    SkillCountLabel.TextXAlignment = Enum.TextXAlignment.Left
+    SkillCountLabel.ZIndex = 5
+    SkillCountLabel.Parent = SkillCountContainer
+
+    local SkillCountSlider = Instance.new("TextButton")
+    SkillCountSlider.Size = UDim2.new(1, -20, 0, 25)
+    SkillCountSlider.Position = UDim2.new(0, 10, 0, 35)
+    SkillCountSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    SkillCountSlider.Text = ""
+    SkillCountSlider.BorderSizePixel = 0
+    SkillCountSlider.ZIndex = 5
+    SkillCountSlider.Parent = SkillCountContainer
+    addCorner(SkillCountSlider, 12)
+
+    local countMin = 1
+    local countMax = 20
+    local countRange = countMax - countMin
+    local initialCountRatio = (skillBurstCount - countMin) / countRange
+    
+    local SkillCountFill = Instance.new("Frame")
+    SkillCountFill.Size = UDim2.new(initialCountRatio, 0, 1, 0) 
+    SkillCountFill.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
+    SkillCountFill.BorderSizePixel = 0
+    SkillCountFill.ZIndex = 6
+    SkillCountFill.Parent = SkillCountSlider
+    addCorner(SkillCountFill, 12)
+
+    local SkillCountKnob = Instance.new("Frame")
+    SkillCountKnob.Size = UDim2.new(0, 20, 0, 20)
+    SkillCountKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+    SkillCountKnob.Position = UDim2.new(initialCountRatio, 0, 0.5, 0)
+    SkillCountKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    SkillCountKnob.BorderSizePixel = 0
+    SkillCountKnob.ZIndex = 7
+    SkillCountKnob.Parent = SkillCountSlider
+    addCorner(SkillCountKnob, 50)
+    addShadow(SkillCountKnob)
+
+    SkillCountSlider.MouseButton1Down:Connect(function()
+        local mouse = player:GetMouse()
+        local dragging = true
+        local function updateSlider()
+            if not dragging then return end
+            local relativeX = math.clamp((mouse.X - SkillCountSlider.AbsolutePosition.X) / SkillCountSlider.AbsoluteSize.X, 0, 1)
+            SkillCountFill.Size = UDim2.new(relativeX, 0, 1, 0)
+            SkillCountKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
+            skillBurstCount = math.max(countMin, math.floor(countMin + (countRange * relativeX)))
+            SkillCountLabel.Text = "💣 Burst Hits: " .. skillBurstCount
+        end
+        local moveConnection = mouse.Move:Connect(updateSlider)
+        local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
+        updateSlider()
+    end)
+    
+    -- Burst Cooldown Display
+    local SkillCooldownContainer = Instance.new("Frame")
+    SkillCooldownContainer.Size = UDim2.new(0, 250, 0, 70)
+    SkillCooldownContainer.Position = UDim2.new(0, 280, 0, 220)
+    SkillCooldownContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    SkillCooldownContainer.BorderSizePixel = 0
+    SkillCooldownContainer.ZIndex = 4
+    SkillCooldownContainer.Parent = autoSkillFrame
+    addCorner(SkillCooldownContainer, 10)
+    addStroke(SkillCooldownContainer, Color3.fromRGB(255, 100, 50), 1, 0.7)
+    
+    local SkillCooldownLabel = Instance.new("TextLabel")
+    SkillCooldownLabel.Size = UDim2.new(1, -10, 0, 25)
+    SkillCooldownLabel.Position = UDim2.new(0, 5, 0, 5)
+    SkillCooldownLabel.BackgroundTransparency = 1
+    SkillCooldownLabel.Text = "⏱️ Cooldown: Alternating (0.5s / 1.0s)"
+    SkillCooldownLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SkillCooldownLabel.Font = Enum.Font.GothamBold
+    SkillCooldownLabel.TextSize = 11 -- Smaller text to fit
+    SkillCooldownLabel.TextXAlignment = Enum.TextXAlignment.Left
+    SkillCooldownLabel.ZIndex = 5
+    SkillCooldownLabel.Parent = SkillCooldownContainer
+    
+    -- Target List
+    local SkillTargetScroll, _ = createScrollFrame(autoSkillFrame, 108, 315)
+    SkillTargetScroll.BackgroundTransparency = 0
+    SkillTargetScroll.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    addCorner(SkillTargetScroll, 10)
+
+    AutoSkillToggle.MouseButton1Click:Connect(function()
+        autoSkillEnabled = not autoSkillEnabled
+        AutoSkillToggle.Text = autoSkillEnabled and "⚔️ Enable Auto Skill: ON" or "⚔️ Enable Auto Skill: OFF"
+        tweenProperty(AutoSkillToggle, {BackgroundColor3 = autoSkillEnabled and Color3.fromRGB(255, 100, 50) or Color3.fromRGB(50, 50, 70)}, 0.2)
+
+        if autoSkillEnabled then
+            autoSkillTargetConnection = RunService.Heartbeat:Connect(function()
+                local foundTargets = {}
+                local myHrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if not myHrp then return end
+
+                local gamePlayers = workspace.Game:FindFirstChild("Players")
+                if not gamePlayers then return end
+
+                for _, targetModel in ipairs(gamePlayers:GetChildren()) do
+                    local targetHrp = targetModel:FindFirstChild("HumanoidRootPart")
+                    local targetHum = targetModel:FindFirstChildOfClass("Humanoid")
+                    if targetHrp and targetHum and targetHum.Health > 0 and targetModel ~= player.Character then
+                        if (myHrp.Position - targetHrp.Position).Magnitude <= skillRadius then
+                            foundTargets[targetHum] = true
+                        end
+                    end
+                end
+
+                for targetHum, _ in pairs(foundTargets) do
+                    if not displayedSkillTargetButtons[targetHum] then
+                        local targetLabel = Instance.new("TextLabel")
+                        targetLabel.Size = UDim2.new(1, 0, 0, 30)
+                        targetLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+                        targetLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+                        targetLabel.Font = Enum.Font.Gotham
+                        targetLabel.TextSize = 14
+                        targetLabel.Text = targetHum.Parent.Name
+                        targetLabel.Parent = SkillTargetScroll
+                        addCorner(targetLabel, 6)
+                        displayedSkillTargetButtons[targetHum] = targetLabel
+                    end
+                end
+
+                for targetHum, button in pairs(displayedSkillTargetButtons) do
+                    if not foundTargets[targetHum] or not targetHum or targetHum.Health <= 0 or not targetHum.Parent then
+                        button:Destroy()
+                        displayedSkillTargetButtons[targetHum] = nil
+                    end
+                end
+
+                currentSkillTargets = foundTargets
             end)
-        end
-    end
-end
 
-StyleSearchBar:GetPropertyChangedSignal("Text"):Connect(function()
-    local query = StyleSearchBar.Text:lower()
-    for _, child in ipairs(TrainerScroll:GetChildren()) do
-        if child:IsA("TextButton") then
-            local name = child.Text:lower()
-            child.Visible = (query == "" or name:find(query))
-        end
-    end
-end)
-
---------------------------------------------------------------------------------
--- 3) RELICS SECTION
---------------------------------------------------------------------------------
-createSectionTitle(relicsFrame, "Relics", "💎")
-
-local relicToggle = Instance.new("TextButton")
-relicToggle.Size = UDim2.new(0, 300, 0, 45)
-relicToggle.Position = UDim2.new(0, 10, 0, 60)
-relicToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-relicToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-relicToggle.Font = Enum.Font.GothamSemibold
-relicToggle.TextSize = 14
-relicToggle.Text = "💎 Enable Relics Teleport: OFF"
-relicToggle.BorderSizePixel = 0
-relicToggle.ZIndex = 5
-relicToggle.Parent = relicsFrame
-addCorner(relicToggle, 8)
-addStroke(relicToggle, Color3.fromRGB(255, 100, 50), 1, 0.8)
-
-local relicOriginalSize = relicToggle.Size
-local relicHoverSize = UDim2.new(relicOriginalSize.X.Scale, relicOriginalSize.X.Offset + 2, relicOriginalSize.Y.Scale, relicOriginalSize.Y.Offset + 2)
-relicToggle.MouseEnter:Connect(function()
-    tweenProperty(relicToggle, {Size = relicHoverSize}, 0.15, Enum.EasingStyle.Quad)
-end)
-relicToggle.MouseLeave:Connect(function()
-    tweenProperty(relicToggle, {Size = relicOriginalSize}, 0.15, Enum.EasingStyle.Quad)
-end)
-
-local relicTeleportEnabled = false
-local relicLoopRunning = false
-
-local RelicInfo = Instance.new("TextLabel")
-RelicInfo.Size = UDim2.new(1, -20, 0, 80)
-RelicInfo.Position = UDim2.new(0, 10, 0, 115)
-RelicInfo.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-RelicInfo.TextColor3 = Color3.fromRGB(200, 200, 200)
-RelicInfo.Font = Enum.Font.Gotham
-RelicInfo.TextSize = 13
-RelicInfo.Text = "ℹ️ Auto-farms relics by teleporting to spawned trinkets.\n\n✨ Automatically returns to original position after collection."
-RelicInfo.TextWrapped = true
-RelicInfo.BorderSizePixel = 0
-RelicInfo.ZIndex = 4
-RelicInfo.Parent = relicsFrame
-addCorner(RelicInfo, 10)
-addStroke(RelicInfo, Color3.fromRGB(255, 100, 50), 1, 0.7)
-
-relicToggle.MouseButton1Click:Connect(function()
-    relicTeleportEnabled = not relicTeleportEnabled
-    relicToggle.Text = relicTeleportEnabled and "💎 Enable Relics Teleport: ON" or "💎 Enable Relics Teleport: OFF"
-    tweenProperty(relicToggle, {BackgroundColor3 = relicTeleportEnabled and Color3.fromRGB(255, 100, 50) or Color3.fromRGB(50, 50, 70)}, 0.2)
-    
-    if relicTeleportEnabled and not relicLoopRunning then
-        relicLoopRunning = true
-        task.spawn(function()
-            while relicTeleportEnabled do
-                local spawnedTrinkets = workspace.Game.Trinkets and workspace.Game.Trinkets:FindFirstChild("Spawned")
-                if spawnedTrinkets then
-                    for _, relic in ipairs(spawnedTrinkets:GetChildren()) do
-                        if relic:IsA("BasePart") and relic:FindFirstChildOfClass("TouchTransmitter") then
-                            local char = player.Character
-                            if char then
-                                local hrp = char:FindFirstChild("HumanoidRootPart")
-                                if hrp then
-                                    local originalCFrame = hrp.CFrame
-                                    hrp.CFrame = relic.CFrame + Vector3.new(0,3,0)
-                                    local startTime = tick()
-                                    while relic and relic.Parent and (tick()-startTime < 10) and relicTeleportEnabled do
-                                        task.wait(0.1)
-                                    end
-                                    hrp.CFrame = originalCFrame
-                                    task.wait(1)
+            autoSkillAttackConnection = task.spawn(function()
+                while autoSkillEnabled do
+                    local targetFoundAndEngaged = false
+                    
+                    for targetHum, _ in pairs(currentSkillTargets) do
+                        if autoSkillEnabled and targetHum and targetHum.Health > 0 then
+                            targetFoundAndEngaged = true
+                            
+                            -- BURST SEQUENCE
+                            for i = 1, skillBurstCount do
+                                if autoSkillEnabled and targetHum and targetHum.Health > 0 then
+                                    pcall(function()
+                                        local combatRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ClientToServer"):WaitForChild("BasicCombat")
+                                        if combatRemote then
+                                            combatRemote:FireServer("Skill", targetHum)
+                                        end
+                                    end)
+                                    RunService.Heartbeat:Wait()
+                                else
+                                    break
                                 end
                             end
+                            
+                            -- ALTERNATING COOLDOWN
+                            if useShortCooldown then
+                                task.wait(0.5)
+                            else
+                                task.wait(1.0)
+                            end
+                            useShortCooldown = not useShortCooldown 
+                            
+                            break 
                         end
+                    end
+                    
+                    if not targetFoundAndEngaged then
+                        task.wait(0.1)
                     end
                 end
-                task.wait(1)
-            end
-            relicLoopRunning = false
-        end)
-    end
-end)
+            end)
 
---------------------------------------------------------------------------------
--- 4) PLAYERS SECTION
---------------------------------------------------------------------------------
-createSectionTitle(playersFrame, "Players", "👥")
-
-local playerAutoKillToggles = {}
-local playerAutoKillLoopRunning = {}
-local playerButtons = {}
-local playerAttackDelay = 0.1 
-
-local P_SearchBar = createSearchBar(playersFrame, "🔍 Search Players...", 60)
-
-local PlayerDelayContainer = Instance.new("Frame")
-PlayerDelayContainer.Size = UDim2.new(0, 250, 0, 70)
-PlayerDelayContainer.Position = UDim2.new(0, 280, 0, 60)
-PlayerDelayContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-PlayerDelayContainer.BorderSizePixel = 0
-PlayerDelayContainer.ZIndex = 4
-PlayerDelayContainer.Parent = playersFrame
-addCorner(PlayerDelayContainer, 10)
-addStroke(PlayerDelayContainer, Color3.fromRGB(255, 100, 50), 1, 0.7)
-
-local PlayerDelayLabel = Instance.new("TextLabel")
-PlayerDelayLabel.Size = UDim2.new(1, -10, 0, 25)
-PlayerDelayLabel.Position = UDim2.new(0, 5, 0, 5)
-PlayerDelayLabel.BackgroundTransparency = 1
-PlayerDelayLabel.Text = "⚡ Attack Speed: 0.10s"
-PlayerDelayLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-PlayerDelayLabel.Font = Enum.Font.GothamBold
-PlayerDelayLabel.TextSize = 14
-PlayerDelayLabel.TextXAlignment = Enum.TextXAlignment.Left
-PlayerDelayLabel.ZIndex = 5
-PlayerDelayLabel.Parent = PlayerDelayContainer
-
-local PlayerDelaySlider = Instance.new("TextButton")
-PlayerDelaySlider.Size = UDim2.new(1, -20, 0, 25)
-PlayerDelaySlider.Position = UDim2.new(0, 10, 0, 35)
-PlayerDelaySlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-PlayerDelaySlider.Text = "" -- Removed "Button" text
-PlayerDelaySlider.BorderSizePixel = 0
-PlayerDelaySlider.ZIndex = 5
-PlayerDelaySlider.Parent = PlayerDelayContainer
-addCorner(PlayerDelaySlider, 12)
-
-local PlayerSliderFill = Instance.new("Frame")
-PlayerSliderFill.Size = UDim2.new(0.2, 0, 1, 0)
-PlayerSliderFill.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
-PlayerSliderFill.BorderSizePixel = 0
-PlayerSliderFill.ZIndex = 6
-PlayerSliderFill.Parent = PlayerDelaySlider
-addCorner(PlayerSliderFill, 12)
-addGradient(PlayerSliderFill, Color3.fromRGB(255, 120, 70), Color3.fromRGB(255, 80, 30), 0)
-
-local PlayerSliderKnob = Instance.new("Frame")
-PlayerSliderKnob.Size = UDim2.new(0, 20, 0, 20)
-PlayerSliderKnob.AnchorPoint = Vector2.new(0.5, 0.5) 
-PlayerSliderKnob.Position = UDim2.new(0.2, 0, 0.5, 0)
-PlayerSliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-PlayerSliderKnob.BorderSizePixel = 0
-PlayerSliderKnob.ZIndex = 7
-PlayerSliderKnob.Parent = PlayerDelaySlider
-addCorner(PlayerSliderKnob, 50)
-addShadow(PlayerSliderKnob)
-
-PlayerDelaySlider.MouseButton1Down:Connect(function()
-    local mouse = player:GetMouse()
-    local dragging = true
-    
-    local function updateSlider()
-        if not dragging then return end
-        local relativeX = math.clamp((mouse.X - PlayerDelaySlider.AbsolutePosition.X) / PlayerDelaySlider.AbsoluteSize.X, 0, 1)
-        PlayerSliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
-        PlayerSliderKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
-        playerAttackDelay = math.floor(relativeX * 50) / 100
-        PlayerDelayLabel.Text = string.format("⚡ Attack Speed: %.2fs", playerAttackDelay)
-    end
-    
-    local moveConnection = mouse.Move:Connect(updateSlider)
-    
-    local releaseConnection
-    releaseConnection = UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-            moveConnection:Disconnect()
-            releaseConnection:Disconnect()
+        else
+            if autoSkillTargetConnection then autoSkillTargetConnection:Disconnect(); autoSkillTargetConnection = nil end
+            if autoSkillAttackConnection then task.cancel(autoSkillAttackConnection); autoSkillAttackConnection = nil end
+            for _, button in pairs(displayedSkillTargetButtons) do button:Destroy() end
+            displayedSkillTargetButtons = {}; currentSkillTargets = {}
         end
     end)
-    
-    updateSlider()
-end)
+end
 
-local P_Scroll, P_ListLayout = createScrollFrame(playersFrame, 105, 320)
+--------------------------------------------------------------------------------
+-- 2) STYLES SECTION BUILDER
+--------------------------------------------------------------------------------
+local function buildStylesTab()
+    createSectionTitle(stylesFrame, "Styles", "🥋")
 
-local function addPlayerButton(plr)
-    if plr == player then return end
-    if P_Scroll:FindFirstChild("PlayerButton_"..plr.Name) then return end
-    
-    local btn = createToggleButton(P_Scroll, plr.Name.." : OFF", Color3.fromRGB(50, 50, 70))
-    btn.Name = "PlayerButton_"..plr.Name
-    
-    playerAutoKillToggles[plr.Name] = false
-    playerAutoKillLoopRunning[plr.Name] = false
-    
-    btn.MouseButton1Click:Connect(function()
-        local toggled = not playerAutoKillToggles[plr.Name]
-        playerAutoKillToggles[plr.Name] = toggled
-        if toggled then
-            btn.Text = plr.Name.." : ON"
-            tweenProperty(btn, {BackgroundColor3 = Color3.fromRGB(255, 100, 50)}, 0.2)
-            if not playerAutoKillLoopRunning[plr.Name] then
-                playerAutoKillLoopRunning[plr.Name] = true
-                task.spawn(function()
-                    while playerAutoKillToggles[plr.Name] do
-                        local targetChar = plr.Character
-                        if targetChar and targetChar:FindFirstChild("Humanoid") then
-                            pcall(function()
-                                local combatRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ClientToServer"):WaitForChild("BasicCombat")
-                                if combatRemote then
-                                    combatRemote:FireServer("Skill", targetChar.Humanoid)
-                                end
-                            end)
-                        end
-                        task.wait(playerAttackDelay)
-                    end
-                    playerAutoKillLoopRunning[plr.Name] = false
+    local StyleSearchBar = createSearchBar(stylesFrame, "🔍 Search Trainers...", 60)
+    local TrainerScroll, TrainerUIList = createScrollFrame(stylesFrame, 105, 320)
+
+    local function equipStyle(trainerName)
+        pcall(function()
+            local questRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ClientToServer"):WaitForChild("Quest")
+            questRemote:InvokeServer(trainerName)
+        end)
+    end
+
+    local trainersFolder = workspace.Game:FindFirstChild("Trainers")
+    if trainersFolder then
+        for _, trainer in ipairs(trainersFolder:GetChildren()) do
+            if trainer:IsA("Model") or trainer:IsA("Folder") then
+                local tName = trainer.Name
+                local tBtn = createToggleButton(TrainerScroll, tName, Color3.fromRGB(80, 50, 100))
+
+                tBtn.MouseButton1Click:Connect(function()
+                    equipStyle(tName)
+                    tweenProperty(tBtn, {BackgroundColor3 = Color3.fromRGB(150, 80, 180)}, 0.15)
+                    task.wait(0.2)
+                    tweenProperty(tBtn, {BackgroundColor3 = Color3.fromRGB(80, 50, 100)}, 0.15)
                 end)
             end
-        else
-            btn.Text = plr.Name.." : OFF"
-            tweenProperty(btn, {BackgroundColor3 = Color3.fromRGB(50, 50, 70)}, 0.2)
-        end
-    end)
-    
-    playerButtons[plr.Name] = btn
-end
-
-local function removePlayerButton(plr)
-    local btn = P_Scroll:FindFirstChild("PlayerButton_"..plr.Name)
-    if btn then
-        btn:Destroy()
-        playerButtons[plr.Name] = nil
-        playerAutoKillToggles[plr.Name] = nil
-        playerAutoKillLoopRunning[plr.Name] = nil
-    end
-end
-
-for _, plr in ipairs(Players:GetPlayers()) do
-    addPlayerButton(plr)
-end
-Players.PlayerAdded:Connect(addPlayerButton)
-Players.PlayerRemoving:Connect(removePlayerButton)
-
-P_SearchBar:GetPropertyChangedSignal("Text"):Connect(function()
-    local query = P_SearchBar.Text:lower()
-    for _, child in ipairs(P_Scroll:GetChildren()) do
-        if child:IsA("TextButton") then
-            local pName = child.Text:lower()
-            child.Visible = (query == "" or pName:find(query))
         end
     end
-end)
 
---------------------------------------------------------------------------------
--- 5) TELEPORTS SECTION
---------------------------------------------------------------------------------
-createSectionTitle(teleportsFrame, "Teleports", "📍")
-
-local T_SearchBar = createSearchBar(teleportsFrame, "🔍 Search Locations...", 60)
-local T_Scroll, T_ListLayout = createScrollFrame(teleportsFrame, 105, 320)
-
-local function teleportToTrainer(tName)
-    local trainersFolder2 = workspace.Game:FindFirstChild("Trainers")
-    if trainersFolder2 then
-        local trainer = trainersFolder2:FindFirstChild(tName)
-        if trainer and trainer:FindFirstChild("HumanoidRootPart") then
-            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                tweenProperty(hrp, {CFrame = trainer.HumanoidRootPart.CFrame + Vector3.new(0,3,0)}, 0.5, Enum.EasingStyle.Quint)
+    StyleSearchBar:GetPropertyChangedSignal("Text"):Connect(function()
+        local query = StyleSearchBar.Text:lower()
+        for _, child in ipairs(TrainerScroll:GetChildren()) do
+            if child:IsA("TextButton") then
+                local name = child.Text:lower()
+                child.Visible = (query == "" or name:find(query))
             end
         end
-    end
+    end)
 end
 
-local trainersFolder2 = workspace.Game:FindFirstChild("Trainers")
-if trainersFolder2 then
-    for _, trainer in ipairs(trainersFolder2:GetChildren()) do
-        if trainer:IsA("Model") or trainer:IsA("Folder") then
-            local tName = trainer.Name
-            local tBtn = createToggleButton(T_Scroll, "📍 "..tName, Color3.fromRGB(50, 70, 90))
-            
-            tBtn.MouseButton1Click:Connect(function()
-                teleportToTrainer(tName)
-                tweenProperty(tBtn, {BackgroundColor3 = Color3.fromRGB(100, 140, 180)}, 0.15)
-                task.wait(0.3)
-                tweenProperty(tBtn, {BackgroundColor3 = Color3.fromRGB(50, 70, 90)}, 0.15)
+--------------------------------------------------------------------------------
+-- 3) RELICS SECTION BUILDER
+--------------------------------------------------------------------------------
+local function buildRelicsTab()
+    createSectionTitle(relicsFrame, "Relics", "💎")
+
+    local relicToggle = Instance.new("TextButton")
+    relicToggle.Size = UDim2.new(0, 300, 0, 45)
+    relicToggle.Position = UDim2.new(0, 10, 0, 60)
+    relicToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    relicToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    relicToggle.Font = Enum.Font.GothamSemibold
+    relicToggle.TextSize = 14
+    relicToggle.Text = "💎 Enable Relics Teleport: OFF"
+    relicToggle.BorderSizePixel = 0
+    relicToggle.ZIndex = 5
+    relicToggle.Parent = relicsFrame
+    addCorner(relicToggle, 8)
+    addStroke(relicToggle, Color3.fromRGB(255, 100, 50), 1, 0.8)
+
+    local relicOriginalSize = relicToggle.Size
+    local relicHoverSize = UDim2.new(relicOriginalSize.X.Scale, relicOriginalSize.X.Offset + 2, relicOriginalSize.Y.Scale, relicOriginalSize.Y.Offset + 2)
+    relicToggle.MouseEnter:Connect(function()
+        tweenProperty(relicToggle, {Size = relicHoverSize}, 0.15, Enum.EasingStyle.Quad)
+    end)
+    relicToggle.MouseLeave:Connect(function()
+        tweenProperty(relicToggle, {Size = relicOriginalSize}, 0.15, Enum.EasingStyle.Quad)
+    end)
+
+    local relicTeleportEnabled = false
+    local relicLoopRunning = false
+
+    local RelicInfo = Instance.new("TextLabel")
+    RelicInfo.Size = UDim2.new(1, -20, 0, 80)
+    RelicInfo.Position = UDim2.new(0, 10, 0, 115)
+    RelicInfo.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    RelicInfo.TextColor3 = Color3.fromRGB(200, 200, 200)
+    RelicInfo.Font = Enum.Font.Gotham
+    RelicInfo.TextSize = 13
+    RelicInfo.Text = "ℹ️ Auto-farms relics by teleporting to spawned trinkets.\n\n✨ Automatically returns to original position after collection."
+    RelicInfo.TextWrapped = true
+    RelicInfo.BorderSizePixel = 0
+    RelicInfo.ZIndex = 4
+    RelicInfo.Parent = relicsFrame
+    addCorner(RelicInfo, 10)
+    addStroke(RelicInfo, Color3.fromRGB(255, 100, 50), 1, 0.7)
+
+    relicToggle.MouseButton1Click:Connect(function()
+        relicTeleportEnabled = not relicTeleportEnabled
+        relicToggle.Text = relicTeleportEnabled and "💎 Enable Relics Teleport: ON" or "💎 Enable Relics Teleport: OFF"
+        tweenProperty(relicToggle, {BackgroundColor3 = relicTeleportEnabled and Color3.fromRGB(255, 100, 50) or Color3.fromRGB(50, 50, 70)}, 0.2)
+
+        if relicTeleportEnabled and not relicLoopRunning then
+            relicLoopRunning = true
+            task.spawn(function()
+                while relicTeleportEnabled do
+                    local spawnedTrinkets = workspace.Game.Trinkets and workspace.Game.Trinkets:FindFirstChild("Spawned")
+                    if spawnedTrinkets then
+                        for _, relic in ipairs(spawnedTrinkets:GetChildren()) do
+                            if relic:IsA("BasePart") and relic:FindFirstChildOfClass("TouchTransmitter") then
+                                local char = player.Character
+                                if char then
+                                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                                    if hrp then
+                                        local originalCFrame = hrp.CFrame
+                                        hrp.CFrame = relic.CFrame + Vector3.new(0,3,0)
+                                        local startTime = tick()
+                                        while relic and relic.Parent and (tick()-startTime < 10) and relicTeleportEnabled do
+                                            task.wait(0.1)
+                                        end
+                                        hrp.CFrame = originalCFrame
+                                        task.wait(1)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    task.wait(1)
+                end
+                relicLoopRunning = false
             end)
         end
-    end
+    end)
 end
 
-T_SearchBar:GetPropertyChangedSignal("Text"):Connect(function()
-    local query = T_SearchBar.Text:lower()
-    for _, child in ipairs(T_Scroll:GetChildren()) do
-        if child:IsA("TextButton") then
-            local name = child.Text:lower()
-            child.Visible = (query == "" or name:find(query))
+--------------------------------------------------------------------------------
+-- 4) PLAYERS SECTION BUILDER
+--------------------------------------------------------------------------------
+local function buildPlayersTab()
+    createSectionTitle(playersFrame, "Players", "👥")
+
+    local playerAutoKillToggles = {}
+    local playerAutoKillLoopRunning = {}
+    local playerButtons = {}
+    local playerAttackDelay = 0.1
+
+    local P_SearchBar = createSearchBar(playersFrame, "🔍 Search Players...", 60)
+
+    local PlayerDelayContainer = Instance.new("Frame")
+    PlayerDelayContainer.Size = UDim2.new(0, 250, 0, 70)
+    PlayerDelayContainer.Position = UDim2.new(0, 280, 0, 60)
+    PlayerDelayContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    PlayerDelayContainer.BorderSizePixel = 0
+    PlayerDelayContainer.ZIndex = 4
+    PlayerDelayContainer.Parent = playersFrame
+    addCorner(PlayerDelayContainer, 10)
+    addStroke(PlayerDelayContainer, Color3.fromRGB(255, 100, 50), 1, 0.7)
+
+    local PlayerDelayLabel = Instance.new("TextLabel")
+    PlayerDelayLabel.Size = UDim2.new(1, -10, 0, 25)
+    PlayerDelayLabel.Position = UDim2.new(0, 5, 0, 5)
+    PlayerDelayLabel.BackgroundTransparency = 1
+    PlayerDelayLabel.Text = "⚡ Attack Speed: 0.10s"
+    PlayerDelayLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PlayerDelayLabel.Font = Enum.Font.GothamBold
+    PlayerDelayLabel.TextSize = 14
+    PlayerDelayLabel.TextXAlignment = Enum.TextXAlignment.Left
+    PlayerDelayLabel.ZIndex = 5
+    PlayerDelayLabel.Parent = PlayerDelayContainer
+
+    local PlayerDelaySlider = Instance.new("TextButton")
+    PlayerDelaySlider.Size = UDim2.new(1, -20, 0, 25)
+    PlayerDelaySlider.Position = UDim2.new(0, 10, 0, 35)
+    PlayerDelaySlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    PlayerDelaySlider.Text = ""
+    PlayerDelaySlider.BorderSizePixel = 0
+    PlayerDelaySlider.ZIndex = 5
+    PlayerDelaySlider.Parent = PlayerDelayContainer
+    addCorner(PlayerDelaySlider, 12)
+
+    local PlayerSliderFill = Instance.new("Frame")
+    PlayerSliderFill.Size = UDim2.new(0.2, 0, 1, 0)
+    PlayerSliderFill.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
+    PlayerSliderFill.BorderSizePixel = 0
+    PlayerSliderFill.ZIndex = 6
+    PlayerSliderFill.Parent = PlayerDelaySlider
+    addCorner(PlayerSliderFill, 12)
+    addGradient(PlayerSliderFill, Color3.fromRGB(255, 120, 70), Color3.fromRGB(255, 80, 30), 0)
+
+    local PlayerSliderKnob = Instance.new("Frame")
+    PlayerSliderKnob.Size = UDim2.new(0, 20, 0, 20)
+    PlayerSliderKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+    PlayerSliderKnob.Position = UDim2.new(0.2, 0, 0.5, 0)
+    PlayerSliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    PlayerSliderKnob.BorderSizePixel = 0
+    PlayerSliderKnob.ZIndex = 7
+    PlayerSliderKnob.Parent = PlayerDelaySlider
+    addCorner(PlayerSliderKnob, 50)
+    addShadow(PlayerSliderKnob)
+
+    PlayerDelaySlider.MouseButton1Down:Connect(function()
+        local mouse = player:GetMouse()
+        local dragging = true
+
+        local function updateSlider()
+            if not dragging then return end
+            local relativeX = math.clamp((mouse.X - PlayerDelaySlider.AbsolutePosition.X) / PlayerDelaySlider.AbsoluteSize.X, 0, 1)
+            PlayerSliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+            PlayerSliderKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
+            playerAttackDelay = math.floor(relativeX * 50) / 100
+            PlayerDelayLabel.Text = string.format("⚡ Attack Speed: %.2fs", playerAttackDelay)
         end
-    end
-end)
 
---------------------------------------------------------------------------------
--- 6) AUTO PUNCH SECTION
---------------------------------------------------------------------------------
-createSectionTitle(autoPunchFrame, "Auto Punch", "👊")
+        local moveConnection = mouse.Move:Connect(updateSlider)
 
-local autoPunchEnabled = false
-local punchRadius = 100
-local punchDelay = 0.1
-local autoPunchTargetConnection = nil
-local autoPunchAttackConnection = nil
-local currentPunchTargets = {}
-local displayedPunchTargetButtons = {}
-
--- Master Toggle
-local AutoPunchToggle = Instance.new("TextButton")
-AutoPunchToggle.Position = UDim2.new(0, 10, 0, 60)
-AutoPunchToggle.Size = UDim2.new(0, 250, 0, 38)
-AutoPunchToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-AutoPunchToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-AutoPunchToggle.Font = Enum.Font.GothamSemibold
-AutoPunchToggle.TextSize = 14
-AutoPunchToggle.Text = "👊 Enable Auto Punch: OFF"
-AutoPunchToggle.BorderSizePixel = 0
-AutoPunchToggle.ZIndex = 5
-AutoPunchToggle.Parent = autoPunchFrame
-addCorner(AutoPunchToggle, 8)
-addStroke(AutoPunchToggle, Color3.fromRGB(255, 100, 50), 1, 0.8)
-
-local ap_originalSize = AutoPunchToggle.Size
-local ap_hoverSize = UDim2.new(ap_originalSize.X.Scale, ap_originalSize.X.Offset + 2, ap_originalSize.Y.Scale, ap_originalSize.Y.Offset + 2)
-AutoPunchToggle.MouseEnter:Connect(function() tweenProperty(AutoPunchToggle, {Size = ap_hoverSize}, 0.15, Enum.EasingStyle.Quad) end)
-AutoPunchToggle.MouseLeave:Connect(function() tweenProperty(AutoPunchToggle, {Size = ap_originalSize}, 0.15, Enum.EasingStyle.Quad) end)
-
--- Radius Slider
-local RadiusContainer = Instance.new("Frame")
-RadiusContainer.Size = UDim2.new(0, 250, 0, 70)
-RadiusContainer.Position = UDim2.new(0, 280, 0, 60)
-RadiusContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-RadiusContainer.BorderSizePixel = 0
-RadiusContainer.ZIndex = 4
-RadiusContainer.Parent = autoPunchFrame
-addCorner(RadiusContainer, 10)
-addStroke(RadiusContainer, Color3.fromRGB(255, 100, 50), 1, 0.7)
-
-local RadiusLabel = Instance.new("TextLabel")
-RadiusLabel.Size = UDim2.new(1, -10, 0, 25)
-RadiusLabel.Position = UDim2.new(0, 5, 0, 5)
-RadiusLabel.BackgroundTransparency = 1
-RadiusLabel.Text = "🎯 Radius: 100"
-RadiusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-RadiusLabel.Font = Enum.Font.GothamBold
-RadiusLabel.TextSize = 14
-RadiusLabel.TextXAlignment = Enum.TextXAlignment.Left
-RadiusLabel.ZIndex = 5
-RadiusLabel.Parent = RadiusContainer
-
-local RadiusSlider = Instance.new("TextButton")
-RadiusSlider.Size = UDim2.new(1, -20, 0, 25)
-RadiusSlider.Position = UDim2.new(0, 10, 0, 35)
-RadiusSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-RadiusSlider.Text = "" -- Removed "Button" text
-RadiusSlider.BorderSizePixel = 0
-RadiusSlider.ZIndex = 5
-RadiusSlider.Parent = RadiusContainer
-addCorner(RadiusSlider, 12)
-
-local RadiusFill = Instance.new("Frame")
-RadiusFill.Size = UDim2.new(100/200, 0, 1, 0)
-RadiusFill.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
-RadiusFill.BorderSizePixel = 0
-RadiusFill.ZIndex = 6
-RadiusFill.Parent = RadiusSlider
-addCorner(RadiusFill, 12)
-
-local RadiusKnob = Instance.new("Frame")
-RadiusKnob.Size = UDim2.new(0, 20, 0, 20)
-RadiusKnob.AnchorPoint = Vector2.new(0.5, 0.5)
-RadiusKnob.Position = UDim2.new(100/200, 0, 0.5, 0)
-RadiusKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-RadiusKnob.BorderSizePixel = 0
-RadiusKnob.ZIndex = 7
-RadiusKnob.Parent = RadiusSlider
-addCorner(RadiusKnob, 50)
-addShadow(RadiusKnob)
-
-RadiusSlider.MouseButton1Down:Connect(function()
-    local mouse = player:GetMouse()
-    local dragging = true
-    local function updateSlider()
-        if not dragging then return end
-        local relativeX = math.clamp((mouse.X - RadiusSlider.AbsolutePosition.X) / RadiusSlider.AbsoluteSize.X, 0, 1)
-        RadiusFill.Size = UDim2.new(relativeX, 0, 1, 0)
-        RadiusKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
-        punchRadius = math.floor(10 + (relativeX * 190))
-        RadiusLabel.Text = "🎯 Radius: " .. punchRadius
-    end
-    local moveConnection = mouse.Move:Connect(updateSlider)
-    local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
-    updateSlider()
-end)
-
--- Speed Slider
-local PunchSpeedContainer = Instance.new("Frame")
-PunchSpeedContainer.Size = UDim2.new(0, 250, 0, 70)
-PunchSpeedContainer.Position = UDim2.new(0, 280, 0, 140)
-PunchSpeedContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-PunchSpeedContainer.BorderSizePixel = 0
-PunchSpeedContainer.ZIndex = 4
-PunchSpeedContainer.Parent = autoPunchFrame
-addCorner(PunchSpeedContainer, 10)
-addStroke(PunchSpeedContainer, Color3.fromRGB(255, 100, 50), 1, 0.7)
-
-local PunchSpeedLabel = Instance.new("TextLabel")
-PunchSpeedLabel.Size = UDim2.new(1, -10, 0, 25)
-PunchSpeedLabel.Position = UDim2.new(0, 5, 0, 5)
-PunchSpeedLabel.BackgroundTransparency = 1
-PunchSpeedLabel.Text = "⚡ Speed: 0.10s"
-PunchSpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-PunchSpeedLabel.Font = Enum.Font.GothamBold
-PunchSpeedLabel.TextSize = 14
-PunchSpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
-PunchSpeedLabel.ZIndex = 5
-PunchSpeedLabel.Parent = PunchSpeedContainer
-
-local PunchSpeedSlider = Instance.new("TextButton")
-PunchSpeedSlider.Size = UDim2.new(1, -20, 0, 25)
-PunchSpeedSlider.Position = UDim2.new(0, 10, 0, 35)
-PunchSpeedSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-PunchSpeedSlider.Text = "" -- Removed "Button" text
-PunchSpeedSlider.BorderSizePixel = 0
-PunchSpeedSlider.ZIndex = 5
-PunchSpeedSlider.Parent = PunchSpeedContainer
-addCorner(PunchSpeedSlider, 12)
-
-local PunchSpeedFill = Instance.new("Frame")
-PunchSpeedFill.Size = UDim2.new(0.2, 0, 1, 0)
-PunchSpeedFill.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
-PunchSpeedFill.BorderSizePixel = 0
-PunchSpeedFill.ZIndex = 6
-PunchSpeedFill.Parent = PunchSpeedSlider
-addCorner(PunchSpeedFill, 12)
-
-local PunchSliderKnob = Instance.new("Frame")
-PunchSliderKnob.Size = UDim2.new(0, 20, 0, 20)
-PunchSliderKnob.AnchorPoint = Vector2.new(0.5, 0.5)
-PunchSliderKnob.Position = UDim2.new(0.2, 0, 0.5, 0)
-PunchSliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-PunchSliderKnob.BorderSizePixel = 0
-PunchSliderKnob.ZIndex = 7
-PunchSliderKnob.Parent = PunchSpeedSlider
-addCorner(PunchSliderKnob, 50)
-addShadow(PunchSliderKnob)
-
-PunchSpeedSlider.MouseButton1Down:Connect(function()
-    local mouse = player:GetMouse()
-    local dragging = true
-    local function updateSlider()
-        if not dragging then return end
-        local relativeX = math.clamp((mouse.X - PunchSpeedSlider.AbsolutePosition.X) / PunchSpeedSlider.AbsoluteSize.X, 0, 1)
-        PunchSpeedFill.Size = UDim2.new(relativeX, 0, 1, 0)
-        PunchSliderKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
-        punchDelay = math.floor(relativeX * 50) / 100
-        PunchSpeedLabel.Text = string.format("⚡ Speed: %.2fs", punchDelay)
-    end
-    local moveConnection = mouse.Move:Connect(updateSlider)
-    local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
-    updateSlider()
-end)
-
--- Target List
-local PunchTargetScroll, _ = createScrollFrame(autoPunchFrame, 108, 315)
-PunchTargetScroll.BackgroundTransparency = 0
-PunchTargetScroll.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-addCorner(PunchTargetScroll, 10)
-
-AutoPunchToggle.MouseButton1Click:Connect(function()
-    autoPunchEnabled = not autoPunchEnabled
-    AutoPunchToggle.Text = autoPunchEnabled and "👊 Enable Auto Punch: ON" or "👊 Enable Auto Punch: OFF"
-    tweenProperty(AutoPunchToggle, {BackgroundColor3 = autoPunchEnabled and Color3.fromRGB(255, 100, 50) or Color3.fromRGB(50, 50, 70)}, 0.2)
-
-    if autoPunchEnabled then
-        autoPunchTargetConnection = RunService.Heartbeat:Connect(function()
-            local foundTargets = {}
-            local myHrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if not myHrp then return end
-
-            local gamePlayers = workspace.Game:FindFirstChild("Players")
-            if not gamePlayers then return end
-
-            for _, targetModel in ipairs(gamePlayers:GetChildren()) do
-                local targetHrp = targetModel:FindFirstChild("HumanoidRootPart")
-                local targetHum = targetModel:FindFirstChildOfClass("Humanoid")
-                if targetHrp and targetHum and targetHum.Health > 0 and targetModel ~= player.Character then
-                    if (myHrp.Position - targetHrp.Position).Magnitude <= punchRadius then
-                        foundTargets[targetHum] = true
-                    end
-                end
+        local releaseConnection
+        releaseConnection = UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = false
+                moveConnection:Disconnect()
+                releaseConnection:Disconnect()
             end
-            
-            for targetHum, _ in pairs(foundTargets) do
-                if not displayedPunchTargetButtons[targetHum] then
-                    local targetLabel = Instance.new("TextLabel")
-                    targetLabel.Size = UDim2.new(1, 0, 0, 30)
-                    targetLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-                    targetLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-                    targetLabel.Font = Enum.Font.Gotham
-                    targetLabel.TextSize = 14
-                    targetLabel.Text = targetHum.Parent.Name
-                    targetLabel.Parent = PunchTargetScroll
-                    addCorner(targetLabel, 6)
-                    displayedPunchTargetButtons[targetHum] = targetLabel
-                end
-            end
-            
-            for targetHum, button in pairs(displayedPunchTargetButtons) do
-                if not foundTargets[targetHum] or not targetHum or targetHum.Health <= 0 or not targetHum.Parent then
-                    button:Destroy()
-                    displayedPunchTargetButtons[targetHum] = nil
-                end
-            end
-
-            currentPunchTargets = foundTargets
         end)
 
-        autoPunchAttackConnection = task.spawn(function()
-            while autoPunchEnabled do
-                for targetHum, _ in pairs(currentPunchTargets) do
-                    if autoPunchEnabled and targetHum and targetHum.Health > 0 then
-                        pcall(function()
-                            local combatRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ClientToServer"):WaitForChild("BasicCombat")
-                            if combatRemote then
-                                combatRemote:FireServer("Light Punche", 1, targetHum, false, false)
+        updateSlider()
+    end)
+
+    local P_Scroll, P_ListLayout = createScrollFrame(playersFrame, 105, 320)
+
+    local function addPlayerButton(plr)
+        if plr == player then return end
+        if P_Scroll:FindFirstChild("PlayerButton_"..plr.Name) then return end
+
+        local btn = createToggleButton(P_Scroll, plr.Name.." : OFF", Color3.fromRGB(50, 50, 70))
+        btn.Name = "PlayerButton_"..plr.Name
+
+        playerAutoKillToggles[plr.Name] = false
+        playerAutoKillLoopRunning[plr.Name] = false
+
+        btn.MouseButton1Click:Connect(function()
+            local toggled = not playerAutoKillToggles[plr.Name]
+            playerAutoKillToggles[plr.Name] = toggled
+            if toggled then
+                btn.Text = plr.Name.." : ON"
+                tweenProperty(btn, {BackgroundColor3 = Color3.fromRGB(255, 100, 50)}, 0.2)
+                if not playerAutoKillLoopRunning[plr.Name] then
+                    playerAutoKillLoopRunning[plr.Name] = true
+                    task.spawn(function()
+                        while playerAutoKillToggles[plr.Name] do
+                            local targetChar = plr.Character
+                            if targetChar and targetChar:FindFirstChild("Humanoid") then
+                                pcall(function()
+                                    local combatRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ClientToServer"):WaitForChild("BasicCombat")
+                                    if combatRemote then
+                                        combatRemote:FireServer("Skill", targetChar.Humanoid)
+                                    end
+                                end)
                             end
-                        end)
-                        task.wait(punchDelay) 
-                    else
-                        task.wait() 
-                    end
+                            task.wait(playerAttackDelay)
+                        end
+                        playerAutoKillLoopRunning[plr.Name] = false
+                    end)
                 end
-                if not next(currentPunchTargets) then
-                    task.wait(0.1)
-                end
+            else
+                btn.Text = plr.Name.." : OFF"
+                tweenProperty(btn, {BackgroundColor3 = Color3.fromRGB(50, 50, 70)}, 0.2)
             end
         end)
 
-    else
-        if autoPunchTargetConnection then autoPunchTargetConnection:Disconnect(); autoPunchTargetConnection = nil end
-        if autoPunchAttackConnection then task.cancel(autoPunchAttackConnection); autoPunchAttackConnection = nil end
-        for _, button in pairs(displayedPunchTargetButtons) do button:Destroy() end
-        displayedPunchTargetButtons = {}; currentPunchTargets = {}
+        playerButtons[plr.Name] = btn
     end
-end)
 
---------------------------------------------------------------------------------
--- 7) MISC SECTION
---------------------------------------------------------------------------------
-createSectionTitle(miscFrame, "Miscellaneous", "⚙️")
-
-local miscButtons = Instance.new("ScrollingFrame")
-miscButtons.Size = UDim2.new(1, -20, 1, -60)
-miscButtons.Position = UDim2.new(0, 10, 0, 50)
-miscButtons.BackgroundTransparency = 1
-miscButtons.ScrollBarThickness = 6
-miscButtons.ScrollBarImageColor3 = Color3.fromRGB(255, 100, 50)
-miscButtons.BorderSizePixel = 0
-miscButtons.ZIndex = 4
-miscButtons.Parent = miscFrame
-miscButtons.CanvasSize = UDim2.new(0, 0, 0, 0)
-
-local miscLayout = Instance.new("UIListLayout")
-miscLayout.Padding = UDim.new(0, 10)
-miscLayout.FillDirection = Enum.FillDirection.Vertical
-miscLayout.SortOrder = Enum.SortOrder.LayoutOrder
-miscLayout.Parent = miscButtons
-miscLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    miscButtons.CanvasSize = UDim2.new(0, 0, 0, miscLayout.AbsoluteContentSize.Y + 10)
-end)
-
--- Walkspeed Control
-local walkspeedEnabled = false
-local walkspeedValue = 16
-local walkspeedConnection
-
-local WalkspeedFrame = Instance.new("Frame")
-WalkspeedFrame.Size = UDim2.new(1, 0, 0, 90)
-WalkspeedFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-WalkspeedFrame.BorderSizePixel = 0
-WalkspeedFrame.ZIndex = 4
-WalkspeedFrame.Parent = miscButtons
-WalkspeedFrame.LayoutOrder = 1
-addCorner(WalkspeedFrame, 10)
-addStroke(WalkspeedFrame, Color3.fromRGB(255, 100, 50), 1, 0.7)
-
-local WalkspeedToggle = Instance.new("TextButton")
-WalkspeedToggle.Name = "WalkspeedToggle"
-WalkspeedToggle.Size = UDim2.new(1, -10, 0, 35)
-WalkspeedToggle.Position = UDim2.new(0, 5, 0, 5)
-WalkspeedToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-WalkspeedToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-WalkspeedToggle.Font = Enum.Font.GothamSemibold
-WalkspeedToggle.TextSize = 14
-WalkspeedToggle.Text = "🏃 Walkspeed: OFF"
-WalkspeedToggle.BorderSizePixel = 0
-WalkspeedToggle.ZIndex = 5
-WalkspeedToggle.Parent = WalkspeedFrame
-addCorner(WalkspeedToggle, 8)
-addStroke(WalkspeedToggle, Color3.fromRGB(255, 100, 50), 1, 0.8)
-
-local wsOriginalSize = UDim2.new(1, -10, 0, 35)
-local wsHoverSize = UDim2.new(1, -8, 0, 37)
-
-WalkspeedToggle.MouseEnter:Connect(function() tweenProperty(WalkspeedToggle, {Size = wsHoverSize}, 0.15, Enum.EasingStyle.Quad) end)
-WalkspeedToggle.MouseLeave:Connect(function() tweenProperty(WalkspeedToggle, {Size = wsOriginalSize}, 0.15, Enum.EasingStyle.Quad) end)
-
-local WalkspeedLabel = Instance.new("TextLabel")
-WalkspeedLabel.Size = UDim2.new(0.5, 0, 0, 20)
-WalkspeedLabel.Position = UDim2.new(0, 10, 0, 45)
-WalkspeedLabel.BackgroundTransparency = 1
-WalkspeedLabel.Text = "Speed: 16"
-WalkspeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-WalkspeedLabel.Font = Enum.Font.GothamBold
-WalkspeedLabel.TextSize = 12
-WalkspeedLabel.TextXAlignment = Enum.TextXAlignment.Left
-WalkspeedLabel.ZIndex = 5
-WalkspeedLabel.Parent = WalkspeedFrame
-
-local WalkspeedSlider = Instance.new("TextButton")
-WalkspeedSlider.Size = UDim2.new(1, -20, 0, 20)
-WalkspeedSlider.Position = UDim2.new(0, 10, 0, 65)
-WalkspeedSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-WalkspeedSlider.Text = "" -- Removed "Button" text
-WalkspeedSlider.BorderSizePixel = 0
-WalkspeedSlider.ZIndex = 5
-WalkspeedSlider.Parent = WalkspeedFrame
-addCorner(WalkspeedSlider, 10)
-
-local WalkspeedFill = Instance.new("Frame")
-WalkspeedFill.Size = UDim2.new(0.1, 0, 1, 0)
-WalkspeedFill.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
-WalkspeedFill.BorderSizePixel = 0
-WalkspeedFill.ZIndex = 6
-WalkspeedFill.Parent = WalkspeedSlider
-addCorner(WalkspeedFill, 10)
-
-local WalkspeedKnob = Instance.new("Frame")
-WalkspeedKnob.Size = UDim2.new(0, 20, 0, 20)
-WalkspeedKnob.AnchorPoint = Vector2.new(0.5, 0.5)
-WalkspeedKnob.Position = UDim2.new(0.1, 0, 0.5, 0)
-WalkspeedKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-WalkspeedKnob.BorderSizePixel = 0
-WalkspeedKnob.ZIndex = 7
-WalkspeedKnob.Parent = WalkspeedSlider
-addCorner(WalkspeedKnob, 50)
-addShadow(WalkspeedKnob)
-
-WalkspeedSlider.MouseButton1Down:Connect(function()
-    local mouse = player:GetMouse()
-    local dragging = true
-    local function updateSlider()
-        if not dragging then return end
-        local relativeX = math.clamp((mouse.X - WalkspeedSlider.AbsolutePosition.X) / WalkspeedSlider.AbsoluteSize.X, 0, 1)
-        WalkspeedFill.Size = UDim2.new(relativeX, 0, 1, 0)
-        WalkspeedKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
-        walkspeedValue = math.floor(16 + (relativeX * 184)) -- 16 to 200
-        WalkspeedLabel.Text = "Speed: " .. walkspeedValue
-    end
-    local moveConnection = mouse.Move:Connect(updateSlider)
-    local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
-    updateSlider()
-end)
-
-WalkspeedToggle.MouseButton1Click:Connect(function()
-    walkspeedEnabled = not walkspeedEnabled
-    WalkspeedToggle.Text = walkspeedEnabled and "🏃 Walkspeed: ON" or "🏃 Walkspeed: OFF"
-    tweenProperty(WalkspeedToggle, {BackgroundColor3 = walkspeedEnabled and Color3.fromRGB(100, 200, 100) or Color3.fromRGB(50, 50, 70)}, 0.2)
-    
-    if walkspeedEnabled then
-        if walkspeedConnection then walkspeedConnection:Disconnect() end
-        walkspeedConnection = RunService.Heartbeat:Connect(function()
-            local char = player.Character
-            if char and char:FindFirstChild("Humanoid") then
-                char.Humanoid.WalkSpeed = walkspeedValue
-            end
-        end)
-    else
-        if walkspeedConnection then walkspeedConnection:Disconnect(); walkspeedConnection = nil end
-        local char = player.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.WalkSpeed = 16
+    local function removePlayerButton(plr)
+        local btn = P_Scroll:FindFirstChild("PlayerButton_"..plr.Name)
+        if btn then
+            btn:Destroy()
+            playerButtons[plr.Name] = nil
+            playerAutoKillToggles[plr.Name] = nil
+            playerAutoKillLoopRunning[plr.Name] = nil
         end
     end
-end)
 
--- JumpPower Control
-local jumppowerEnabled = false
-local jumppowerValue = 50
-local jumppowerConnection
-
-local JumppowerFrame = Instance.new("Frame")
-JumppowerFrame.Size = UDim2.new(1, 0, 0, 90)
-JumppowerFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-JumppowerFrame.BorderSizePixel = 0
-JumppowerFrame.ZIndex = 4
-JumppowerFrame.Parent = miscButtons
-JumppowerFrame.LayoutOrder = 2
-addCorner(JumppowerFrame, 10)
-addStroke(JumppowerFrame, Color3.fromRGB(255, 100, 50), 1, 0.7)
-
-local JumppowerToggle = Instance.new("TextButton")
-JumppowerToggle.Name = "JumppowerToggle"
-JumppowerToggle.Size = UDim2.new(1, -10, 0, 35)
-JumppowerToggle.Position = UDim2.new(0, 5, 0, 5)
-JumppowerToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-JumppowerToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-JumppowerToggle.Font = Enum.Font.GothamSemibold
-JumppowerToggle.TextSize = 14
-JumppowerToggle.Text = "🦘 JumpPower: OFF"
-JumppowerToggle.BorderSizePixel = 0
-JumppowerToggle.ZIndex = 5
-JumppowerToggle.Parent = JumppowerFrame
-addCorner(JumppowerToggle, 8)
-addStroke(JumppowerToggle, Color3.fromRGB(255, 100, 50), 1, 0.8)
-
-local jpOriginalSize = UDim2.new(1, -10, 0, 35)
-local jpHoverSize = UDim2.new(1, -8, 0, 37)
-
-JumppowerToggle.MouseEnter:Connect(function() tweenProperty(JumppowerToggle, {Size = jpHoverSize}, 0.15, Enum.EasingStyle.Quad) end)
-JumppowerToggle.MouseLeave:Connect(function() tweenProperty(JumppowerToggle, {Size = jpOriginalSize}, 0.15, Enum.EasingStyle.Quad) end)
-
-local JumppowerLabel = Instance.new("TextLabel")
-JumppowerLabel.Size = UDim2.new(0.5, 0, 0, 20)
-JumppowerLabel.Position = UDim2.new(0, 10, 0, 45)
-JumppowerLabel.BackgroundTransparency = 1
-JumppowerLabel.Text = "Power: 50"
-JumppowerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-JumppowerLabel.Font = Enum.Font.GothamBold
-JumppowerLabel.TextSize = 12
-JumppowerLabel.TextXAlignment = Enum.TextXAlignment.Left
-JumppowerLabel.ZIndex = 5
-JumppowerLabel.Parent = JumppowerFrame
-
-local JumppowerSlider = Instance.new("TextButton")
-JumppowerSlider.Size = UDim2.new(1, -20, 0, 20)
-JumppowerSlider.Position = UDim2.new(0, 10, 0, 65)
-JumppowerSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-JumppowerSlider.Text = "" -- Removed "Button" text
-JumppowerSlider.BorderSizePixel = 0
-JumppowerSlider.ZIndex = 5
-JumppowerSlider.Parent = JumppowerFrame
-addCorner(JumppowerSlider, 10)
-
-local JumppowerFill = Instance.new("Frame")
-JumppowerFill.Size = UDim2.new(0.167, 0, 1, 0)
-JumppowerFill.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
-JumppowerFill.BorderSizePixel = 0
-JumppowerFill.ZIndex = 6
-JumppowerFill.Parent = JumppowerSlider
-addCorner(JumppowerFill, 10)
-
-local JumppowerKnob = Instance.new("Frame")
-JumppowerKnob.Size = UDim2.new(0, 20, 0, 20)
-JumppowerKnob.AnchorPoint = Vector2.new(0.5, 0.5)
-JumppowerKnob.Position = UDim2.new(0.167, 0, 0.5, 0)
-JumppowerKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-JumppowerKnob.BorderSizePixel = 0
-JumppowerKnob.ZIndex = 7
-JumppowerKnob.Parent = JumppowerSlider
-addCorner(JumppowerKnob, 50)
-addShadow(JumppowerKnob)
-
-JumppowerSlider.MouseButton1Down:Connect(function()
-    local mouse = player:GetMouse()
-    local dragging = true
-    local function updateSlider()
-        if not dragging then return end
-        local relativeX = math.clamp((mouse.X - JumppowerSlider.AbsolutePosition.X) / JumppowerSlider.AbsoluteSize.X, 0, 1)
-        JumppowerFill.Size = UDim2.new(relativeX, 0, 1, 0)
-        JumppowerKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
-        jumppowerValue = math.floor(50 + (relativeX * 250)) -- 50 to 300
-        JumppowerLabel.Text = "Power: " .. jumppowerValue
+    for _, plr in ipairs(Players:GetPlayers()) do
+        addPlayerButton(plr)
     end
-    local moveConnection = mouse.Move:Connect(updateSlider)
-    local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
-    updateSlider()
-end)
+    Players.PlayerAdded:Connect(addPlayerButton)
+    Players.PlayerRemoving:Connect(removePlayerButton)
 
-JumppowerToggle.MouseButton1Click:Connect(function()
-    jumppowerEnabled = not jumppowerEnabled
-    JumppowerToggle.Text = jumppowerEnabled and "🦘 JumpPower: ON" or "🦘 JumpPower: OFF"
-    tweenProperty(JumppowerToggle, {BackgroundColor3 = jumppowerEnabled and Color3.fromRGB(150, 100, 255) or Color3.fromRGB(50, 50, 70)}, 0.2)
-    
-    if jumppowerEnabled then
-        if jumppowerConnection then jumppowerConnection:Disconnect() end
-        jumppowerConnection = RunService.Heartbeat:Connect(function()
-            local char = player.Character
-            if char and char:FindFirstChild("Humanoid") then
-                char.Humanoid.JumpPower = jumppowerValue
+    P_SearchBar:GetPropertyChangedSignal("Text"):Connect(function()
+        local query = P_SearchBar.Text:lower()
+        for _, child in ipairs(P_Scroll:GetChildren()) do
+            if child:IsA("TextButton") then
+                local pName = child.Text:lower()
+                child.Visible = (query == "" or pName:find(query))
             end
-        end)
-    else
-        if jumppowerConnection then jumppowerConnection:Disconnect(); jumppowerConnection = nil end
-        local char = player.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.JumpPower = 50
         end
-    end
-end)
-
--- Infinite Jump
-local infJumpEnabled = false
-local infJumpConnection
-
-local InfJumpToggle = createToggleButton(miscButtons, "♾️ Infinite Jump: OFF")
-InfJumpToggle.LayoutOrder = 3
-InfJumpToggle.MouseButton1Click:Connect(function()
-    infJumpEnabled = not infJumpEnabled
-    InfJumpToggle.Text = infJumpEnabled and "♾️ Infinite Jump: ON" or "♾️ Infinite Jump: OFF"
-    tweenProperty(InfJumpToggle, {BackgroundColor3 = infJumpEnabled and Color3.fromRGB(255, 200, 100) or Color3.fromRGB(50, 50, 70)}, 0.2)
-    
-    if infJumpEnabled then
-        infJumpConnection = UserInputService.JumpRequest:Connect(function()
-            local char = player.Character
-            if char and char:FindFirstChild("Humanoid") then
-                char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-        end)
-    else
-        if infJumpConnection then infJumpConnection:Disconnect() end
-    end
-end)
-
--- Fly Control
-local flyEnabled = false
-local flySpeed = 50
-local flyConnection
-local flyKeys = {W = false, A = false, S = false, D = false, Space = false, LeftShift = false}
-
-local FlyFrame = Instance.new("Frame")
-FlyFrame.Size = UDim2.new(1, 0, 0, 90)
-FlyFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-FlyFrame.BorderSizePixel = 0
-FlyFrame.ZIndex = 4
-FlyFrame.Parent = miscButtons
-FlyFrame.LayoutOrder = 4
-addCorner(FlyFrame, 10)
-addStroke(FlyFrame, Color3.fromRGB(255, 100, 50), 1, 0.7)
-
-local FlyToggle = Instance.new("TextButton")
-FlyToggle.Name = "FlyToggle"
-FlyToggle.Size = UDim2.new(1, -10, 0, 35)
-FlyToggle.Position = UDim2.new(0, 5, 0, 5)
-FlyToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-FlyToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-FlyToggle.Font = Enum.Font.GothamSemibold
-FlyToggle.TextSize = 14
-FlyToggle.Text = "✈️ Fly: OFF"
-FlyToggle.BorderSizePixel = 0
-FlyToggle.ZIndex = 5
-FlyToggle.Parent = FlyFrame
-addCorner(FlyToggle, 8)
-addStroke(FlyToggle, Color3.fromRGB(255, 100, 50), 1, 0.8)
-
-local flyOriginalSize = UDim2.new(1, -10, 0, 35)
-local flyHoverSize = UDim2.new(1, -8, 0, 37)
-
-FlyToggle.MouseEnter:Connect(function() tweenProperty(FlyToggle, {Size = flyHoverSize}, 0.15, Enum.EasingStyle.Quad) end)
-FlyToggle.MouseLeave:Connect(function() tweenProperty(FlyToggle, {Size = flyOriginalSize}, 0.15, Enum.EasingStyle.Quad) end)
-
-local FlyLabel = Instance.new("TextLabel")
-FlyLabel.Size = UDim2.new(0.5, 0, 0, 20)
-FlyLabel.Position = UDim2.new(0, 10, 0, 45)
-FlyLabel.BackgroundTransparency = 1
-FlyLabel.Text = "Speed: 50"
-FlyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-FlyLabel.Font = Enum.Font.GothamBold
-FlyLabel.TextSize = 12
-FlyLabel.TextXAlignment = Enum.TextXAlignment.Left
-FlyLabel.ZIndex = 5
-FlyLabel.Parent = FlyFrame
-
-local FlySlider = Instance.new("TextButton")
-FlySlider.Size = UDim2.new(1, -20, 0, 20)
-FlySlider.Position = UDim2.new(0, 10, 0, 65)
-FlySlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-FlySlider.Text = "" -- Removed "Button" text
-FlySlider.BorderSizePixel = 0
-FlySlider.ZIndex = 5
-FlySlider.Parent = FlyFrame
-addCorner(FlySlider, 10)
-
-local FlyFill = Instance.new("Frame")
-FlyFill.Size = UDim2.new(0.2, 0, 1, 0)
-FlyFill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
-FlyFill.BorderSizePixel = 0
-FlyFill.ZIndex = 6
-FlyFill.Parent = FlySlider
-addCorner(FlyFill, 10)
-
-local FlyKnob = Instance.new("Frame")
-FlyKnob.Size = UDim2.new(0, 20, 0, 20)
-FlyKnob.AnchorPoint = Vector2.new(0.5, 0.5)
-FlyKnob.Position = UDim2.new(0.2, 0, 0.5, 0)
-FlyKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-FlyKnob.BorderSizePixel = 0
-FlyKnob.ZIndex = 7
-FlyKnob.Parent = FlySlider
-addCorner(FlyKnob, 50)
-addShadow(FlyKnob)
-
-FlySlider.MouseButton1Down:Connect(function()
-    local mouse = player:GetMouse()
-    local dragging = true
-    local function updateSlider()
-        if not dragging then return end
-        local relativeX = math.clamp((mouse.X - FlySlider.AbsolutePosition.X) / FlySlider.AbsoluteSize.X, 0, 1)
-        FlyFill.Size = UDim2.new(relativeX, 0, 1, 0)
-        FlyKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
-        flySpeed = math.floor(20 + (relativeX * 230)) -- 20 to 250
-        FlyLabel.Text = "Speed: " .. flySpeed
-    end
-    local moveConnection = mouse.Move:Connect(updateSlider)
-    local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
-    updateSlider()
-end)
-
-local function startFly()
-    local char = player.Character; if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart"); if not hrp then return end
-    
-    local BV = Instance.new("BodyVelocity"); BV.MaxForce = Vector3.new(9e9, 9e9, 9e9); BV.Velocity = Vector3.new(0, 0, 0); BV.Parent = hrp
-    local BG = Instance.new("BodyGyro"); BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9); BG.CFrame = hrp.CFrame; BG.Parent = hrp
-    
-    flyConnection = RunService.Heartbeat:Connect(function()
-        if not flyEnabled then return end; local char = player.Character; if not char then return end
-        local hrp = char:FindFirstChild("HumanoidRootPart"); if not hrp then return end
-        
-        local camera = workspace.CurrentCamera; local moveDirection = Vector3.new(0, 0, 0)
-        if flyKeys.W then moveDirection = moveDirection + camera.CFrame.LookVector end
-        if flyKeys.S then moveDirection = moveDirection - camera.CFrame.LookVector end
-        if flyKeys.A then moveDirection = moveDirection - camera.CFrame.RightVector end
-        if flyKeys.D then moveDirection = moveDirection + camera.CFrame.RightVector end
-        if flyKeys.Space then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
-        if flyKeys.LeftShift then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
-        
-        if moveDirection.Magnitude > 0 then moveDirection = moveDirection.Unit end
-        
-        BV.Velocity = moveDirection * flySpeed; BG.CFrame = camera.CFrame
     end)
-    
-    local inputBeganConnection = UserInputService.InputBegan:Connect(function(input)
-        if input.KeyCode == Enum.KeyCode.W then flyKeys.W = true elseif input.KeyCode == Enum.KeyCode.A then flyKeys.A = true elseif input.KeyCode == Enum.KeyCode.S then flyKeys.S = true elseif input.KeyCode == Enum.KeyCode.D then flyKeys.D = true elseif input.KeyCode == Enum.KeyCode.Space then flyKeys.Space = true elseif input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.LeftShift = true end
-    end)
-    
-    local inputEndedConnection = UserInputService.InputEnded:Connect(function(input)
-        if input.KeyCode == Enum.KeyCode.W then flyKeys.W = false elseif input.KeyCode == Enum.KeyCode.A then flyKeys.A = false elseif input.KeyCode == Enum.KeyCode.S then flyKeys.S = false elseif input.KeyCode == Enum.KeyCode.D then flyKeys.D = false elseif input.KeyCode == Enum.KeyCode.Space then flyKeys.Space = false elseif input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.LeftShift = false end
-    end)
-    
-    return BV, BG, inputBeganConnection, inputEndedConnection
 end
 
-local flyObjects = {}
+--------------------------------------------------------------------------------
+-- 5) TELEPORTS SECTION BUILDER
+--------------------------------------------------------------------------------
+local function buildTeleportsTab()
+    createSectionTitle(teleportsFrame, "Teleports", "📍")
 
-FlyToggle.MouseButton1Click:Connect(function()
-    flyEnabled = not flyEnabled
-    FlyToggle.Text = flyEnabled and "✈️ Fly: ON (WASD + Space/Shift)" or "✈️ Fly: OFF"
-    tweenProperty(FlyToggle, {BackgroundColor3 = flyEnabled and Color3.fromRGB(100, 150, 255) or Color3.fromRGB(50, 50, 70)}, 0.2)
-    
-    if flyEnabled then
-        local bv, bg, inputBegan, inputEnded = startFly(); flyObjects = {bv, bg, inputBegan, inputEnded}
-    else
-        if flyConnection then flyConnection:Disconnect() end
-        for _, obj in ipairs(flyObjects) do if obj then if typeof(obj) == "Instance" then obj:Destroy() else obj:Disconnect() end end end
-        flyObjects = {}; flyKeys = {W = false, A = false, S = false, D = false, Space = false, LeftShift = false}
+    local T_SearchBar = createSearchBar(teleportsFrame, "🔍 Search Locations...", 60)
+    local T_Scroll, T_ListLayout = createScrollFrame(teleportsFrame, 105, 320)
+
+    local function teleportToTrainer(tName)
+        local trainersFolder2 = workspace.Game:FindFirstChild("Trainers")
+        if trainersFolder2 then
+            local trainer = trainersFolder2:FindFirstChild(tName)
+            if trainer and trainer:FindFirstChild("HumanoidRootPart") then
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = trainer.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
+                end
+            end
+        end
     end
-end)
 
--- Noclip Control
-local noclipEnabled = false
-local noclipConnection
+    local trainersFolder2 = workspace.Game:FindFirstChild("Trainers")
+    if trainersFolder2 then
+        for _, trainer in ipairs(trainersFolder2:GetChildren()) do
+            if trainer:IsA("Model") or trainer:IsA("Folder") then
+                local tName = trainer.Name
+                local tBtn = createToggleButton(T_Scroll, "📍 "..tName, Color3.fromRGB(50, 70, 90))
 
-local NoclipToggle = createToggleButton(miscButtons, "👻 Noclip: OFF")
-NoclipToggle.LayoutOrder = 5
-NoclipToggle.MouseButton1Click:Connect(function()
-    noclipEnabled = not noclipEnabled
-    NoclipToggle.Text = noclipEnabled and "👻 Noclip: ON" or "👻 Noclip: OFF"
-    tweenProperty(NoclipToggle, {BackgroundColor3 = noclipEnabled and Color3.fromRGB(150, 255, 150) or Color3.fromRGB(50, 50, 70)}, 0.2)
+                tBtn.MouseButton1Click:Connect(function()
+                    teleportToTrainer(tName)
+                    tweenProperty(tBtn, {BackgroundColor3 = Color3.fromRGB(100, 140, 180)}, 0.15)
+                    task.wait(0.3)
+                    tweenProperty(tBtn, {BackgroundColor3 = Color3.fromRGB(50, 70, 90)}, 0.15)
+                end)
+            end
+        end
+    end
+
+    T_SearchBar:GetPropertyChangedSignal("Text"):Connect(function()
+        local query = T_SearchBar.Text:lower()
+        for _, child in ipairs(T_Scroll:GetChildren()) do
+            if child:IsA("TextButton") then
+                local name = child.Text:lower()
+                child.Visible = (query == "" or name:find(query))
+            end
+        end
+    end)
+end
+
+--------------------------------------------------------------------------------
+-- 6) AUTO PUNCH SECTION BUILDER
+--------------------------------------------------------------------------------
+local function buildAutoPunchTab()
+    createSectionTitle(autoPunchFrame, "Auto Punch", "👊")
+
+    local autoPunchEnabled = false
+    local punchRadius = 100
+    local punchBurstCount = 5
+    local punchBurstCooldown = 0.4
+    local autoPunchTargetConnection = nil
+    local autoPunchAttackConnection = nil
+    local currentPunchTargets = {}
+    local displayedPunchTargetButtons = {}
     
-    if noclipEnabled then
-        noclipConnection = RunService.Stepped:Connect(function()
+    local hoverAboveTargetEnabled = false
+    local hoverAboveHeight = 15
+    local hoverAboveConnection = nil
+    local exitCFrame = nil 
+    local useShortCooldown = true
+
+    -- Master Toggle (Auto Punch)
+    local AutoPunchToggle = Instance.new("TextButton")
+    AutoPunchToggle.Position = UDim2.new(0, 10, 0, 60)
+    AutoPunchToggle.Size = UDim2.new(0, 250, 0, 38)
+    AutoPunchToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    AutoPunchToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    AutoPunchToggle.Font = Enum.Font.GothamSemibold
+    AutoPunchToggle.TextSize = 14
+    AutoPunchToggle.Text = "👊 Enable Auto Punch: OFF"
+    AutoPunchToggle.BorderSizePixel = 0
+    AutoPunchToggle.ZIndex = 5
+    AutoPunchToggle.Parent = autoPunchFrame
+    addCorner(AutoPunchToggle, 8)
+    addStroke(AutoPunchToggle, Color3.fromRGB(255, 100, 50), 1, 0.8)
+
+    local ap_originalSize = AutoPunchToggle.Size
+    local ap_hoverSize = UDim2.new(ap_originalSize.X.Scale, ap_originalSize.X.Offset + 2, ap_originalSize.Y.Scale, ap_originalSize.Y.Offset + 2)
+    AutoPunchToggle.MouseEnter:Connect(function() tweenProperty(AutoPunchToggle, {Size = ap_hoverSize}, 0.15, Enum.EasingStyle.Quad) end)
+    AutoPunchToggle.MouseLeave:Connect(function() tweenProperty(AutoPunchToggle, {Size = ap_originalSize}, 0.15, Enum.EasingStyle.Quad) end)
+
+    -- Radius Slider
+    local RadiusContainer = Instance.new("Frame")
+    RadiusContainer.Size = UDim2.new(0, 250, 0, 70)
+    RadiusContainer.Position = UDim2.new(0, 280, 0, 60)
+    RadiusContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    RadiusContainer.BorderSizePixel = 0
+    RadiusContainer.ZIndex = 4
+    RadiusContainer.Parent = autoPunchFrame
+    addCorner(RadiusContainer, 10)
+    addStroke(RadiusContainer, Color3.fromRGB(255, 100, 50), 1, 0.7)
+
+    local RadiusLabel = Instance.new("TextLabel")
+    RadiusLabel.Size = UDim2.new(1, -10, 0, 25)
+    RadiusLabel.Position = UDim2.new(0, 5, 0, 5)
+    RadiusLabel.BackgroundTransparency = 1
+    RadiusLabel.Text = "🎯 Radius: 100"
+    RadiusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    RadiusLabel.Font = Enum.Font.GothamBold
+    RadiusLabel.TextSize = 14
+    RadiusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    RadiusLabel.ZIndex = 5
+    RadiusLabel.Parent = RadiusContainer
+
+    local RadiusSlider = Instance.new("TextButton")
+    RadiusSlider.Size = UDim2.new(1, -20, 0, 25)
+    RadiusSlider.Position = UDim2.new(0, 10, 0, 35)
+    RadiusSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    RadiusSlider.Text = ""
+    RadiusSlider.BorderSizePixel = 0
+    RadiusSlider.ZIndex = 5
+    RadiusSlider.Parent = RadiusContainer
+    addCorner(RadiusSlider, 12)
+
+    local RadiusFill = Instance.new("Frame")
+    RadiusFill.Size = UDim2.new(100/200, 0, 1, 0)
+    RadiusFill.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
+    RadiusFill.BorderSizePixel = 0
+    RadiusFill.ZIndex = 6
+    RadiusFill.Parent = RadiusSlider
+    addCorner(RadiusFill, 12)
+
+    local RadiusKnob = Instance.new("Frame")
+    RadiusKnob.Size = UDim2.new(0, 20, 0, 20)
+    RadiusKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+    RadiusKnob.Position = UDim2.new(100/200, 0, 0.5, 0)
+    RadiusKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    RadiusKnob.BorderSizePixel = 0
+    RadiusKnob.ZIndex = 7
+    RadiusKnob.Parent = RadiusSlider
+    addCorner(RadiusKnob, 50)
+    addShadow(RadiusKnob)
+
+    RadiusSlider.MouseButton1Down:Connect(function()
+        local mouse = player:GetMouse()
+        local dragging = true
+        local function updateSlider()
+            if not dragging then return end
+            local relativeX = math.clamp((mouse.X - RadiusSlider.AbsolutePosition.X) / RadiusSlider.AbsoluteSize.X, 0, 1)
+            RadiusFill.Size = UDim2.new(relativeX, 0, 1, 0)
+            RadiusKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
+            punchRadius = math.floor(10 + (relativeX * 190))
+            RadiusLabel.Text = "🎯 Radius: " .. punchRadius
+        end
+        local moveConnection = mouse.Move:Connect(updateSlider)
+        local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
+        updateSlider()
+    end)
+
+    -- HOVER ABOVE TARGET FEATURE
+    local HoverAboveContainer = Instance.new("Frame")
+    HoverAboveContainer.Size = UDim2.new(0, 250, 0, 90)
+    HoverAboveContainer.Position = UDim2.new(0, 280, 0, 140)
+    HoverAboveContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    HoverAboveContainer.BorderSizePixel = 0
+    HoverAboveContainer.ZIndex = 4
+    HoverAboveContainer.Parent = autoPunchFrame
+    addCorner(HoverAboveContainer, 10)
+    addStroke(HoverAboveContainer, Color3.fromRGB(255, 100, 50), 1, 0.7)
+
+    local HoverAboveToggle = Instance.new("TextButton")
+    HoverAboveToggle.Size = UDim2.new(1, -10, 0, 35)
+    HoverAboveToggle.Position = UDim2.new(0, 5, 0, 5)
+    HoverAboveToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    HoverAboveToggle.Text = "⬆️ Hover Target: OFF"
+    HoverAboveToggle.Font = Enum.Font.GothamSemibold
+    HoverAboveToggle.TextSize = 14
+    HoverAboveToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    HoverAboveToggle.ZIndex = 5
+    HoverAboveToggle.Parent = HoverAboveContainer
+    addCorner(HoverAboveToggle, 8)
+    addStroke(HoverAboveToggle, Color3.fromRGB(255, 100, 50), 1, 0.8)
+
+    local HoverAboveLabel = Instance.new("TextLabel")
+    HoverAboveLabel.Size = UDim2.new(0.5, 0, 0, 20)
+    HoverAboveLabel.Position = UDim2.new(0, 10, 0, 45)
+    HoverAboveLabel.BackgroundTransparency = 1
+    HoverAboveLabel.Text = "Height: 15"
+    HoverAboveLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    HoverAboveLabel.Font = Enum.Font.GothamBold
+    HoverAboveLabel.TextSize = 12
+    HoverAboveLabel.TextXAlignment = Enum.TextXAlignment.Left
+    HoverAboveLabel.ZIndex = 5
+    HoverAboveLabel.Parent = HoverAboveContainer
+
+    local HoverAboveSlider = Instance.new("TextButton")
+    HoverAboveSlider.Size = UDim2.new(1, -20, 0, 20)
+    HoverAboveSlider.Position = UDim2.new(0, 10, 0, 65)
+    HoverAboveSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    HoverAboveSlider.Text = ""
+    HoverAboveSlider.BorderSizePixel = 0
+    HoverAboveSlider.ZIndex = 5
+    HoverAboveSlider.Parent = HoverAboveContainer
+    addCorner(HoverAboveSlider, 10)
+
+    local hoverMin = 10
+    local hoverMax = 50
+    local hoverRange = hoverMax - hoverMin
+    local initialHoverRatio = (hoverAboveHeight - hoverMin) / hoverRange
+    
+    local HoverAboveFill = Instance.new("Frame")
+    HoverAboveFill.Size = UDim2.new(initialHoverRatio, 0, 1, 0)
+    HoverAboveFill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+    HoverAboveFill.BorderSizePixel = 0
+    HoverAboveFill.ZIndex = 6
+    HoverAboveFill.Parent = HoverAboveSlider
+    addCorner(HoverAboveFill, 10)
+
+    local HoverAboveKnob = Instance.new("Frame")
+    HoverAboveKnob.Size = UDim2.new(0, 20, 0, 20)
+    HoverAboveKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+    HoverAboveKnob.Position = UDim2.new(initialHoverRatio, 0, 0.5, 0)
+    HoverAboveKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    HoverAboveKnob.BorderSizePixel = 0
+    HoverAboveKnob.ZIndex = 7
+    HoverAboveKnob.Parent = HoverAboveSlider
+    addCorner(HoverAboveKnob, 50)
+    addShadow(HoverAboveKnob)
+
+    HoverAboveSlider.MouseButton1Down:Connect(function()
+        local mouse = player:GetMouse()
+        local dragging = true
+        local function updateSlider()
+            if not dragging then return end
+            local relativeX = math.clamp((mouse.X - HoverAboveSlider.AbsolutePosition.X) / HoverAboveSlider.AbsoluteSize.X, 0, 1)
+            HoverAboveFill.Size = UDim2.new(relativeX, 0, 1, 0)
+            HoverAboveKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
+            hoverAboveHeight = math.floor(hoverMin + (hoverRange * relativeX))
+            HoverAboveLabel.Text = "Height: " .. hoverAboveHeight
+        end
+        local moveConnection = mouse.Move:Connect(updateSlider)
+        local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
+        updateSlider()
+    end)
+
+    local function findClosestTargetHRP(targets)
+        local myHrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if not myHrp then return nil end
+
+        local closestHrp = nil
+        local smallestDist = math.huge
+
+        for targetHum, _ in pairs(targets) do
+            if targetHum and targetHum.Parent and targetHum.Health > 0 then
+                local targetHrp = targetHum.Parent:FindFirstChild("HumanoidRootPart")
+                if targetHrp then
+                    local dist = (myHrp.Position - targetHrp.Position).Magnitude
+                    if dist <= punchRadius then
+                        if dist < smallestDist then
+                            smallestDist = dist
+                            closestHrp = targetHrp
+                        end
+                    end
+                end
+            end
+        end
+        return closestHrp
+    end
+    
+    local function returnToGround()
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if hrp and exitCFrame then
+             tweenProperty(hrp, {CFrame = exitCFrame}, 0.2, Enum.EasingStyle.Quad)
+        end
+        exitCFrame = nil 
+    end
+
+    HoverAboveToggle.MouseButton1Click:Connect(function()
+        hoverAboveTargetEnabled = not hoverAboveTargetEnabled
+        
+        if hoverAboveTargetEnabled then
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                exitCFrame = hrp.CFrame
+            end
+            
+            HoverAboveToggle.Text = "⬆️ Hover Target: ON"
+            tweenProperty(HoverAboveToggle, {BackgroundColor3 = Color3.fromRGB(100, 150, 255)}, 0.2)
+
+            if hoverAboveConnection then hoverAboveConnection:Disconnect() end
+            hoverAboveConnection = RunService.Heartbeat:Connect(function()
+                if not hoverAboveTargetEnabled then return end
+                
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                
+                local closestHrp = findClosestTargetHRP(currentPunchTargets)
+
+                if closestHrp then
+                    local targetPosition = closestHrp.Position
+                    local desiredCFrame = CFrame.new(targetPosition + Vector3.new(0, hoverAboveHeight, 0))
+                    
+                    hrp.CFrame = desiredCFrame
+                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    
+                    exitCFrame = hrp.CFrame
+                else
+                    if exitCFrame then
+                        returnToGround()
+                        exitCFrame = nil
+                    end
+                end
+            end)
+        else
+            HoverAboveToggle.Text = "⬆️ Hover Target: OFF"
+            tweenProperty(HoverAboveToggle, {BackgroundColor3 = Color3.fromRGB(50, 50, 70)}, 0.2)
+            
+            if hoverAboveConnection then hoverAboveConnection:Disconnect(); hoverAboveConnection = nil end
+            returnToGround()
+        end
+    end)
+    
+    -- Burst Count Slider
+    local PunchCountContainer = Instance.new("Frame")
+    PunchCountContainer.Size = UDim2.new(0, 250, 0, 70)
+    PunchCountContainer.Position = UDim2.new(0, 280, 0, 240)
+    PunchCountContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    PunchCountContainer.BorderSizePixel = 0
+    PunchCountContainer.ZIndex = 4
+    PunchCountContainer.Parent = autoPunchFrame
+    addCorner(PunchCountContainer, 10)
+    addStroke(PunchCountContainer, Color3.fromRGB(255, 100, 50), 1, 0.7)
+
+    local PunchCountLabel = Instance.new("TextLabel")
+    PunchCountLabel.Size = UDim2.new(1, -10, 0, 25)
+    PunchCountLabel.Position = UDim2.new(0, 5, 0, 5)
+    PunchCountLabel.BackgroundTransparency = 1
+    PunchCountLabel.Text = "💣 Burst Hits: 5"
+    PunchCountLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PunchCountLabel.Font = Enum.Font.GothamBold
+    PunchCountLabel.TextSize = 14
+    PunchCountLabel.TextXAlignment = Enum.TextXAlignment.Left
+    PunchCountLabel.ZIndex = 5
+    PunchCountLabel.Parent = PunchCountContainer
+
+    local PunchCountSlider = Instance.new("TextButton")
+    PunchCountSlider.Size = UDim2.new(1, -20, 0, 25)
+    PunchCountSlider.Position = UDim2.new(0, 10, 0, 35)
+    PunchCountSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    PunchCountSlider.Text = ""
+    PunchCountSlider.BorderSizePixel = 0
+    PunchCountSlider.ZIndex = 5
+    PunchCountSlider.Parent = PunchCountContainer
+    addCorner(PunchCountSlider, 12)
+    
+    local countPunchMin = 1
+    local countPunchMax = 20
+    local countPunchRange = countPunchMax - countPunchMin
+    local initialCountPunchRatio = (punchBurstCount - countPunchMin) / countPunchRange
+
+    local PunchCountFill = Instance.new("Frame")
+    PunchCountFill.Size = UDim2.new(initialCountPunchRatio, 0, 1, 0)
+    PunchCountFill.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
+    PunchCountFill.BorderSizePixel = 0
+    PunchCountFill.ZIndex = 6
+    PunchCountFill.Parent = PunchCountSlider
+    addCorner(PunchCountFill, 12)
+
+    local PunchCountKnob = Instance.new("Frame")
+    PunchCountKnob.Size = UDim2.new(0, 20, 0, 20)
+    PunchCountKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+    PunchCountKnob.Position = UDim2.new(initialCountPunchRatio, 0, 0.5, 0)
+    PunchCountKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    PunchCountKnob.BorderSizePixel = 0
+    PunchCountKnob.ZIndex = 7
+    PunchCountKnob.Parent = PunchCountSlider
+    addCorner(PunchCountKnob, 50)
+    addShadow(PunchCountKnob)
+
+    PunchCountSlider.MouseButton1Down:Connect(function()
+        local mouse = player:GetMouse()
+        local dragging = true
+        local function updateSlider()
+            if not dragging then return end
+            local relativeX = math.clamp((mouse.X - PunchCountSlider.AbsolutePosition.X) / PunchCountSlider.AbsoluteSize.X, 0, 1)
+            PunchCountFill.Size = UDim2.new(relativeX, 0, 1, 0)
+            PunchCountKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
+            punchBurstCount = math.max(countPunchMin, math.floor(countPunchMin + (countPunchRange * relativeX)))
+            PunchCountLabel.Text = "💣 Burst Hits: " .. punchBurstCount
+        end
+        local moveConnection = mouse.Move:Connect(updateSlider)
+        local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
+        updateSlider()
+    end)
+    
+    -- Burst Cooldown Slider
+    local PunchCooldownContainer = Instance.new("Frame")
+    PunchCooldownContainer.Size = UDim2.new(0, 250, 0, 70)
+    PunchCooldownContainer.Position = UDim2.new(0, 280, 0, 320)
+    PunchCooldownContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    PunchCooldownContainer.BorderSizePixel = 0
+    PunchCooldownContainer.ZIndex = 4
+    PunchCooldownContainer.Parent = autoPunchFrame
+    addCorner(PunchCooldownContainer, 10)
+    addStroke(PunchCooldownContainer, Color3.fromRGB(255, 100, 50), 1, 0.7)
+
+    local PunchCooldownLabel = Instance.new("TextLabel")
+    PunchCooldownLabel.Size = UDim2.new(1, -10, 0, 25)
+    PunchCooldownLabel.Position = UDim2.new(0, 5, 0, 5)
+    PunchCooldownLabel.BackgroundTransparency = 1
+    PunchCooldownLabel.Text = "⏱️ Burst Cooldown: 0.4s"
+    PunchCooldownLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PunchCooldownLabel.Font = Enum.Font.GothamBold
+    PunchCooldownLabel.TextSize = 14
+    PunchCooldownLabel.TextXAlignment = Enum.TextXAlignment.Left
+    PunchCooldownLabel.ZIndex = 5
+    PunchCooldownLabel.Parent = PunchCooldownContainer
+
+    local PunchCooldownSlider = Instance.new("TextButton")
+    PunchCooldownSlider.Size = UDim2.new(1, -20, 0, 25)
+    PunchCooldownSlider.Position = UDim2.new(0, 10, 0, 35)
+    PunchCooldownSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    PunchCooldownSlider.Text = ""
+    PunchCooldownSlider.BorderSizePixel = 0
+    PunchCooldownSlider.ZIndex = 5
+    PunchCooldownSlider.Parent = PunchCooldownContainer
+    addCorner(PunchCooldownSlider, 12)
+
+    local cooldownPunchMin = 0.1
+    local cooldownPunchMax = 2.0
+    local cooldownPunchRange = cooldownPunchMax - cooldownPunchMin
+    local initialCooldownPunchRatio = (punchBurstCooldown - cooldownPunchMin) / cooldownPunchRange
+
+    local PunchCooldownFill = Instance.new("Frame")
+    PunchCooldownFill.Size = UDim2.new(initialCooldownPunchRatio, 0, 1, 0)
+    PunchCooldownFill.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
+    PunchCooldownFill.BorderSizePixel = 0
+    PunchCooldownFill.ZIndex = 6
+    PunchCooldownFill.Parent = PunchCooldownSlider
+    addCorner(PunchCooldownFill, 12)
+
+    local PunchCooldownKnob = Instance.new("Frame")
+    PunchCooldownKnob.Size = UDim2.new(0, 20, 0, 20)
+    PunchCooldownKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+    PunchCooldownKnob.Position = UDim2.new(initialCooldownPunchRatio, 0, 0.5, 0)
+    PunchCooldownKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    PunchCooldownKnob.BorderSizePixel = 0
+    PunchCooldownKnob.ZIndex = 7
+    PunchCooldownKnob.Parent = PunchCooldownSlider
+    addCorner(PunchCooldownKnob, 50)
+    addShadow(PunchCooldownKnob)
+
+    PunchCooldownSlider.MouseButton1Down:Connect(function()
+        local mouse = player:GetMouse()
+        local dragging = true
+        local function updateSlider()
+            if not dragging then return end
+            local relativeX = math.clamp((mouse.X - PunchCooldownSlider.AbsolutePosition.X) / PunchCooldownSlider.AbsoluteSize.X, 0, 1)
+            PunchCooldownFill.Size = UDim2.new(relativeX, 0, 1, 0)
+            PunchCooldownKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
+            
+            local rawCooldown = cooldownPunchMin + (cooldownPunchRange * relativeX)
+            punchBurstCooldown = math.floor(rawCooldown * 10) / 10
+            PunchCooldownLabel.Text = string.format("⏱️ Burst Cooldown: %.1fs", punchBurstCooldown)
+        end
+        local moveConnection = mouse.Move:Connect(updateSlider)
+        local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
+        updateSlider()
+    end)
+    
+    -- Target List
+    local PunchTargetScroll, _ = createScrollFrame(autoPunchFrame, 108, 315)
+    PunchTargetScroll.BackgroundTransparency = 0
+    PunchTargetScroll.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    addCorner(PunchTargetScroll, 10)
+
+    AutoPunchToggle.MouseButton1Click:Connect(function()
+        autoPunchEnabled = not autoPunchEnabled
+        AutoPunchToggle.Text = autoPunchEnabled and "👊 Enable Auto Punch: ON" or "👊 Enable Auto Punch: OFF"
+        tweenProperty(AutoPunchToggle, {BackgroundColor3 = autoPunchEnabled and Color3.fromRGB(255, 100, 50) or Color3.fromRGB(50, 50, 70)}, 0.2)
+
+        if autoPunchEnabled then
+            autoPunchTargetConnection = RunService.Heartbeat:Connect(function()
+                local foundTargets = {}
+                local myHrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if not myHrp then return end
+
+                local gamePlayers = workspace.Game:FindFirstChild("Players")
+                if not gamePlayers then return end
+
+                for _, targetModel in ipairs(gamePlayers:GetChildren()) do
+                    local targetHrp = targetModel:FindFirstChild("HumanoidRootPart")
+                    local targetHum = targetModel:FindFirstChildOfClass("Humanoid")
+                    if targetHrp and targetHum and targetHum.Health > 0 and targetModel ~= player.Character then
+                        if (myHrp.Position - targetHrp.Position).Magnitude <= punchRadius then
+                            foundTargets[targetHum] = true
+                        end
+                    end
+                end
+
+                for targetHum, _ in pairs(foundTargets) do
+                    if not displayedPunchTargetButtons[targetHum] then
+                        local targetLabel = Instance.new("TextLabel")
+                        targetLabel.Size = UDim2.new(1, 0, 0, 30)
+                        targetLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+                        targetLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+                        targetLabel.Font = Enum.Font.Gotham
+                        targetLabel.TextSize = 14
+                        targetLabel.Text = targetHum.Parent.Name
+                        targetLabel.Parent = PunchTargetScroll
+                        addCorner(targetLabel, 6)
+                        displayedPunchTargetButtons[targetHum] = targetLabel
+                    end
+                end
+
+                for targetHum, button in pairs(displayedPunchTargetButtons) do
+                    if not foundTargets[targetHum] or not targetHum or targetHum.Health <= 0 or not targetHum.Parent then
+                        button:Destroy()
+                        displayedPunchTargetButtons[targetHum] = nil
+                    end
+                end
+
+                currentPunchTargets = foundTargets
+            end)
+
+            autoPunchAttackConnection = task.spawn(function()
+                while autoPunchEnabled do
+                    local targetFoundAndEngaged = false
+                    
+                    for targetHum, _ in pairs(currentPunchTargets) do
+                        if autoPunchEnabled and targetHum and targetHum.Health > 0 then
+                            targetFoundAndEngaged = true
+                            for i = 1, punchBurstCount do
+                                if autoPunchEnabled and targetHum and targetHum.Health > 0 then
+                                    pcall(function()
+                                        local combatRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ClientToServer"):WaitForChild("BasicCombat")
+                                        if combatRemote then
+                                            combatRemote:FireServer("Light Punche", 1, targetHum, false, false)
+                                        end
+                                    end)
+                                    RunService.Heartbeat:Wait()
+                                else
+                                    break
+                                end
+                            end
+                            
+                            -- ALTERNATING COOLDOWN
+                            if useShortCooldown then
+                                task.wait(0.5)
+                            else
+                                task.wait(1.0)
+                            end
+                            useShortCooldown = not useShortCooldown -- Flip for next time
+                            
+                            break 
+                        end
+                    end
+                    
+                    if not targetFoundAndEngaged then
+                        task.wait(0.1)
+                    end
+                end
+            end)
+
+        else
+            if hoverAboveTargetEnabled then
+                HoverAboveToggle:Click()
+            end
+            
+            if autoPunchTargetConnection then autoPunchTargetConnection:Disconnect(); autoPunchTargetConnection = nil end
+            if autoPunchAttackConnection then task.cancel(autoPunchAttackConnection); autoPunchAttackConnection = nil end
+            for _, button in pairs(displayedPunchTargetButtons) do button:Destroy() end
+            displayedPunchTargetButtons = {}; currentPunchTargets = {}
+        end
+    end)
+end
+
+--------------------------------------------------------------------------------
+-- 7) MISC SECTION BUILDER
+--------------------------------------------------------------------------------
+local function buildMiscTab()
+    createSectionTitle(miscFrame, "Miscellaneous", "⚙️")
+
+    local miscButtons = Instance.new("ScrollingFrame")
+    miscButtons.Size = UDim2.new(1, -20, 1, -60)
+    miscButtons.Position = UDim2.new(0, 10, 0, 50)
+    miscButtons.BackgroundTransparency = 1
+    miscButtons.ScrollBarThickness = 6
+    miscButtons.ScrollBarImageColor3 = Color3.fromRGB(255, 100, 50)
+    miscButtons.BorderSizePixel = 0
+    miscButtons.ZIndex = 4
+    miscButtons.Parent = miscFrame
+    miscButtons.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+    local miscLayout = Instance.new("UIListLayout")
+    miscLayout.Padding = UDim.new(0, 10)
+    miscLayout.FillDirection = Enum.FillDirection.Vertical
+    miscLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    miscLayout.Parent = miscButtons
+    miscLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        miscButtons.CanvasSize = UDim2.new(0, 0, 0, miscLayout.AbsoluteContentSize.Y + 10)
+    end)
+
+    -- Walkspeed Control
+    local walkspeedEnabled = false
+    local walkspeedValue = 16
+    local walkspeedConnection
+
+    local WalkspeedFrame = Instance.new("Frame")
+    WalkspeedFrame.Size = UDim2.new(1, 0, 0, 90)
+    WalkspeedFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    WalkspeedFrame.BorderSizePixel = 0
+    WalkspeedFrame.ZIndex = 4
+    WalkspeedFrame.Parent = miscButtons
+    WalkspeedFrame.LayoutOrder = 1
+    addCorner(WalkspeedFrame, 10)
+    addStroke(WalkspeedFrame, Color3.fromRGB(255, 100, 50), 1, 0.7)
+
+    local WalkspeedToggle = Instance.new("TextButton")
+    WalkspeedToggle.Name = "WalkspeedToggle"
+    WalkspeedToggle.Size = UDim2.new(1, -10, 0, 35)
+    WalkspeedToggle.Position = UDim2.new(0, 5, 0, 5)
+    WalkspeedToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    WalkspeedToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    WalkspeedToggle.Font = Enum.Font.GothamSemibold
+    WalkspeedToggle.TextSize = 14
+    WalkspeedToggle.Text = "🏃 Walkspeed: OFF"
+    WalkspeedToggle.BorderSizePixel = 0
+    WalkspeedToggle.ZIndex = 5
+    WalkspeedToggle.Parent = WalkspeedFrame
+    addCorner(WalkspeedToggle, 8)
+    addStroke(WalkspeedToggle, Color3.fromRGB(255, 100, 50), 1, 0.8)
+
+    local wsOriginalSize = UDim2.new(1, -10, 0, 35)
+    local wsHoverSize = UDim2.new(1, -8, 0, 37)
+
+    WalkspeedToggle.MouseEnter:Connect(function() tweenProperty(WalkspeedToggle, {Size = wsHoverSize}, 0.15, Enum.EasingStyle.Quad) end)
+    WalkspeedToggle.MouseLeave:Connect(function() tweenProperty(WalkspeedToggle, {Size = wsOriginalSize}, 0.15, Enum.EasingStyle.Quad) end)
+
+    local WalkspeedLabel = Instance.new("TextLabel")
+    WalkspeedLabel.Size = UDim2.new(0.5, 0, 0, 20)
+    WalkspeedLabel.Position = UDim2.new(0, 10, 0, 45)
+    WalkspeedLabel.BackgroundTransparency = 1
+    WalkspeedLabel.Text = "Speed: 16"
+    WalkspeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    WalkspeedLabel.Font = Enum.Font.GothamBold
+    WalkspeedLabel.TextSize = 12
+    WalkspeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+    WalkspeedLabel.ZIndex = 5
+    WalkspeedLabel.Parent = WalkspeedFrame
+
+    local WalkspeedSlider = Instance.new("TextButton")
+    WalkspeedSlider.Size = UDim2.new(1, -20, 0, 20)
+    WalkspeedSlider.Position = UDim2.new(0, 10, 0, 65)
+    WalkspeedSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    WalkspeedSlider.Text = ""
+    WalkspeedSlider.BorderSizePixel = 0
+    WalkspeedSlider.ZIndex = 5
+    WalkspeedSlider.Parent = WalkspeedFrame
+    addCorner(WalkspeedSlider, 10)
+
+    local WalkspeedFill = Instance.new("Frame")
+    WalkspeedFill.Size = UDim2.new(0.1, 0, 1, 0)
+    WalkspeedFill.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+    WalkspeedFill.BorderSizePixel = 0
+    WalkspeedFill.ZIndex = 6
+    WalkspeedFill.Parent = WalkspeedSlider
+    addCorner(WalkspeedFill, 10)
+
+    local WalkspeedKnob = Instance.new("Frame")
+    WalkspeedKnob.Size = UDim2.new(0, 20, 0, 20)
+    WalkspeedKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+    WalkspeedKnob.Position = UDim2.new(0.1, 0, 0.5, 0)
+    WalkspeedKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    WalkspeedKnob.BorderSizePixel = 0
+    WalkspeedKnob.ZIndex = 7
+    WalkspeedKnob.Parent = WalkspeedSlider
+    addCorner(WalkspeedKnob, 50)
+    addShadow(WalkspeedKnob)
+
+    WalkspeedSlider.MouseButton1Down:Connect(function()
+        local mouse = player:GetMouse()
+        local dragging = true
+        local function updateSlider()
+            if not dragging then return end
+            local relativeX = math.clamp((mouse.X - WalkspeedSlider.AbsolutePosition.X) / WalkspeedSlider.AbsoluteSize.X, 0, 1)
+            WalkspeedFill.Size = UDim2.new(relativeX, 0, 1, 0)
+            WalkspeedKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
+            walkspeedValue = math.floor(16 + (relativeX * 184)) -- 16 to 200
+            WalkspeedLabel.Text = "Speed: " .. walkspeedValue
+        end
+        local moveConnection = mouse.Move:Connect(updateSlider)
+        local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
+        updateSlider()
+    end)
+
+    WalkspeedToggle.MouseButton1Click:Connect(function()
+        walkspeedEnabled = not walkspeedEnabled
+        WalkspeedToggle.Text = walkspeedEnabled and "🏃 Walkspeed: ON" or "🏃 Walkspeed: OFF"
+        tweenProperty(WalkspeedToggle, {BackgroundColor3 = walkspeedEnabled and Color3.fromRGB(100, 200, 100) or Color3.fromRGB(50, 50, 70)}, 0.2)
+
+        if walkspeedEnabled then
+            if walkspeedConnection then walkspeedConnection:Disconnect() end
+            walkspeedConnection = RunService.Heartbeat:Connect(function()
+                local char = player.Character
+                if char and char:FindFirstChild("Humanoid") then
+                    char.Humanoid.WalkSpeed = walkspeedValue
+                end
+            end)
+        else
+            if walkspeedConnection then walkspeedConnection:Disconnect(); walkspeedConnection = nil end
+            local char = player.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.WalkSpeed = 16
+            end
+        end
+    end)
+
+    -- JumpPower Control
+    local jumppowerEnabled = false
+    local jumppowerValue = 50
+    local jumppowerConnection
+
+    local JumppowerFrame = Instance.new("Frame")
+    JumppowerFrame.Size = UDim2.new(1, 0, 0, 90)
+    JumppowerFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    JumppowerFrame.BorderSizePixel = 0
+    JumppowerFrame.ZIndex = 4
+    JumppowerFrame.Parent = miscButtons
+    JumppowerFrame.LayoutOrder = 2
+    addCorner(JumppowerFrame, 10)
+    addStroke(JumppowerFrame, Color3.fromRGB(255, 100, 50), 1, 0.7)
+
+    local JumppowerToggle = Instance.new("TextButton")
+    JumppowerToggle.Name = "JumppowerToggle"
+    JumppowerToggle.Size = UDim2.new(1, -10, 0, 35)
+    JumppowerToggle.Position = UDim2.new(0, 5, 0, 5)
+    JumppowerToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    JumppowerToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    JumppowerToggle.Font = Enum.Font.GothamSemibold
+    JumppowerToggle.TextSize = 14
+    JumppowerToggle.Text = "🦘 JumpPower: OFF"
+    JumppowerToggle.BorderSizePixel = 0
+    JumppowerToggle.ZIndex = 5
+    JumppowerToggle.Parent = JumppowerFrame
+    addCorner(JumppowerToggle, 8)
+    addStroke(JumppowerToggle, Color3.fromRGB(255, 100, 50), 1, 0.8)
+
+    local jpOriginalSize = UDim2.new(1, -10, 0, 35)
+    local jpHoverSize = UDim2.new(1, -8, 0, 37)
+
+    JumppowerToggle.MouseEnter:Connect(function() tweenProperty(JumppowerToggle, {Size = jpHoverSize}, 0.15, Enum.EasingStyle.Quad) end)
+    JumppowerToggle.MouseLeave:Connect(function() tweenProperty(JumppowerToggle, {Size = jpOriginalSize}, 0.15, Enum.EasingStyle.Quad) end)
+
+    local JumppowerLabel = Instance.new("TextLabel")
+    JumppowerLabel.Size = UDim2.new(0.5, 0, 0, 20)
+    JumppowerLabel.Position = UDim2.new(0, 10, 0, 45)
+    JumppowerLabel.BackgroundTransparency = 1
+    JumppowerLabel.Text = "Power: 50"
+    JumppowerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    JumppowerLabel.Font = Enum.Font.GothamBold
+    JumppowerLabel.TextSize = 12
+    JumppowerLabel.TextXAlignment = Enum.TextXAlignment.Left
+    JumppowerLabel.ZIndex = 5
+    JumppowerLabel.Parent = JumppowerFrame
+
+    local JumppowerSlider = Instance.new("TextButton")
+    JumppowerSlider.Size = UDim2.new(1, -20, 0, 20)
+    JumppowerSlider.Position = UDim2.new(0, 10, 0, 65)
+    JumppowerSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    JumppowerSlider.Text = ""
+    JumppowerSlider.BorderSizePixel = 0
+    JumppowerSlider.ZIndex = 5
+    JumppowerSlider.Parent = JumppowerFrame
+    addCorner(JumppowerSlider, 10)
+
+    local JumppowerFill = Instance.new("Frame")
+    JumppowerFill.Size = UDim2.new(0.167, 0, 1, 0)
+    JumppowerFill.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
+    JumppowerFill.BorderSizePixel = 0
+    JumppowerFill.ZIndex = 6
+    JumppowerFill.Parent = JumppowerSlider
+    addCorner(JumppowerFill, 10)
+
+    local JumppowerKnob = Instance.new("Frame")
+    JumppowerKnob.Size = UDim2.new(0, 20, 0, 20)
+    JumppowerKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+    JumppowerKnob.Position = UDim2.new(0.167, 0, 0.5, 0)
+    JumppowerKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    JumppowerKnob.BorderSizePixel = 0
+    JumppowerKnob.ZIndex = 7
+    JumppowerKnob.Parent = JumppowerSlider
+    addCorner(JumppowerKnob, 50)
+    addShadow(JumppowerKnob)
+
+    JumppowerSlider.MouseButton1Down:Connect(function()
+        local mouse = player:GetMouse()
+        local dragging = true
+        local function updateSlider()
+            if not dragging then return end
+            local relativeX = math.clamp((mouse.X - JumppowerSlider.AbsolutePosition.X) / JumppowerSlider.AbsoluteSize.X, 0, 1)
+            JumppowerFill.Size = UDim2.new(relativeX, 0, 1, 0)
+            JumppowerKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
+            jumppowerValue = math.floor(50 + (relativeX * 250)) -- 50 to 300
+            JumppowerLabel.Text = "Power: " .. jumppowerValue
+        end
+        local moveConnection = mouse.Move:Connect(updateSlider)
+        local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
+        updateSlider()
+    end)
+
+    JumppowerToggle.MouseButton1Click:Connect(function()
+        jumppowerEnabled = not jumppowerEnabled
+        JumppowerToggle.Text = jumppowerEnabled and "🦘 JumpPower: ON" or "🦘 JumpPower: OFF"
+        tweenProperty(JumppowerToggle, {BackgroundColor3 = jumppowerEnabled and Color3.fromRGB(150, 100, 255) or Color3.fromRGB(50, 50, 70)}, 0.2)
+
+        if jumppowerEnabled then
+            if jumppowerConnection then jumppowerConnection:Disconnect() end
+            jumppowerConnection = RunService.Heartbeat:Connect(function()
+                local char = player.Character
+                if char and char:FindFirstChild("Humanoid") then
+                    char.Humanoid.JumpPower = jumppowerValue
+                end
+            end)
+        else
+            if jumppowerConnection then jumppowerConnection:Disconnect(); jumppowerConnection = nil end
+            local char = player.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.JumpPower = 50
+            end
+        end
+    end)
+
+    -- Infinite Jump
+    local infJumpEnabled = false
+    local infJumpConnection
+
+    local InfJumpToggle = createToggleButton(miscButtons, "♾️ Infinite Jump: OFF")
+    InfJumpToggle.LayoutOrder = 3
+    InfJumpToggle.MouseButton1Click:Connect(function()
+        infJumpEnabled = not infJumpEnabled
+        InfJumpToggle.Text = infJumpEnabled and "♾️ Infinite Jump: ON" or "♾️ Infinite Jump: OFF"
+        tweenProperty(InfJumpToggle, {BackgroundColor3 = infJumpEnabled and Color3.fromRGB(255, 200, 100) or Color3.fromRGB(50, 50, 70)}, 0.2)
+
+        if infJumpEnabled then
+            infJumpConnection = UserInputService.JumpRequest:Connect(function()
+                local char = player.Character
+                if char and char:FindFirstChild("Humanoid") then
+                    char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end)
+        else
+            if infJumpConnection then infJumpConnection:Disconnect() end
+        end
+    end)
+
+    -- Fly Control
+    local flyEnabled = false
+    local flySpeed = 50
+    local flyConnection
+    local flyKeys = {W = false, A = false, S = false, D = false, Space = false, LeftShift = false}
+
+    local FlyFrame = Instance.new("Frame")
+    FlyFrame.Size = UDim2.new(1, 0, 0, 90)
+    FlyFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    FlyFrame.BorderSizePixel = 0
+    FlyFrame.ZIndex = 4
+    FlyFrame.Parent = miscButtons
+    FlyFrame.LayoutOrder = 4
+    addCorner(FlyFrame, 10)
+    addStroke(FlyFrame, Color3.fromRGB(255, 100, 50), 1, 0.7)
+
+    local FlyToggle = Instance.new("TextButton")
+    FlyToggle.Name = "FlyToggle"
+    FlyToggle.Size = UDim2.new(1, -10, 0, 35)
+    FlyToggle.Position = UDim2.new(0, 5, 0, 5)
+    FlyToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    FlyToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    FlyToggle.Font = Enum.Font.GothamSemibold
+    FlyToggle.TextSize = 14
+    FlyToggle.Text = "✈️ Fly: OFF"
+    FlyToggle.BorderSizePixel = 0
+    FlyToggle.ZIndex = 5
+    FlyToggle.Parent = FlyFrame
+    addCorner(FlyToggle, 8)
+    addStroke(FlyToggle, Color3.fromRGB(255, 100, 50), 1, 0.8)
+
+    local flyOriginalSize = UDim2.new(1, -10, 0, 35)
+    local flyHoverSize = UDim2.new(1, -8, 0, 37)
+
+    FlyToggle.MouseEnter:Connect(function() tweenProperty(FlyToggle, {Size = flyHoverSize}, 0.15, Enum.EasingStyle.Quad) end)
+    FlyToggle.MouseLeave:Connect(function() tweenProperty(FlyToggle, {Size = flyOriginalSize}, 0.15, Enum.EasingStyle.Quad) end)
+
+    local FlyLabel = Instance.new("TextLabel")
+    FlyLabel.Size = UDim2.new(0.5, 0, 0, 20)
+    FlyLabel.Position = UDim2.new(0, 10, 0, 45)
+    FlyLabel.BackgroundTransparency = 1
+    FlyLabel.Text = "Speed: 50"
+    FlyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    FlyLabel.Font = Enum.Font.GothamBold
+    FlyLabel.TextSize = 12
+    FlyLabel.TextXAlignment = Enum.TextXAlignment.Left
+    FlyLabel.ZIndex = 5
+    FlyLabel.Parent = FlyFrame
+
+    local FlySlider = Instance.new("TextButton")
+    FlySlider.Size = UDim2.new(1, -20, 0, 20)
+    FlySlider.Position = UDim2.new(0, 10, 0, 65)
+    FlySlider.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    FlySlider.Text = ""
+    FlySlider.BorderSizePixel = 0
+    FlySlider.ZIndex = 5
+    FlySlider.Parent = FlyFrame
+    addCorner(FlySlider, 10)
+
+    local FlyFill = Instance.new("Frame")
+    FlyFill.Size = UDim2.new(0.2, 0, 1, 0)
+    FlyFill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+    FlyFill.BorderSizePixel = 0
+    FlyFill.ZIndex = 6
+    FlyFill.Parent = FlySlider
+    addCorner(FlyFill, 10)
+
+    local FlyKnob = Instance.new("Frame")
+    FlyKnob.Size = UDim2.new(0, 20, 0, 20)
+    FlyKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+    FlyKnob.Position = UDim2.new(0.2, 0, 0.5, 0)
+    FlyKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    FlyKnob.BorderSizePixel = 0
+    FlyKnob.ZIndex = 7
+    FlyKnob.Parent = FlySlider
+    addCorner(FlyKnob, 50)
+    addShadow(FlyKnob)
+
+    FlySlider.MouseButton1Down:Connect(function()
+        local mouse = player:GetMouse()
+        local dragging = true
+        local function updateSlider()
+            if not dragging then return end
+            local relativeX = math.clamp((mouse.X - FlySlider.AbsolutePosition.X) / FlySlider.AbsoluteSize.X, 0, 1)
+            FlyFill.Size = UDim2.new(relativeX, 0, 1, 0)
+            FlyKnob.Position = UDim2.new(relativeX, 0, 0.5, 0)
+            flySpeed = math.floor(20 + (relativeX * 230)) -- 20 to 250
+            FlyLabel.Text = "Speed: " .. flySpeed
+        end
+        local moveConnection = mouse.Move:Connect(updateSlider)
+        local releaseConnection = UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false; moveConnection:Disconnect(); releaseConnection:Disconnect() end end)
+        updateSlider()
+    end)
+
+    local flyObjects = {}
+    local function startFly()
+        local char = player.Character; if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart"); if not hrp then return end
+
+        local BV = Instance.new("BodyVelocity"); BV.MaxForce = Vector3.new(9e9, 9e9, 9e9); BV.Velocity = Vector3.new(0, 0, 0); BV.Parent = hrp
+        local BG = Instance.new("BodyGyro"); BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9); BG.CFrame = hrp.CFrame; BG.Parent = hrp
+
+        flyConnection = RunService.Heartbeat:Connect(function()
+            if not flyEnabled then return end; local char = player.Character; if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart"); if not hrp then return end
+
+            local camera = workspace.CurrentCamera; local moveDirection = Vector3.new(0, 0, 0)
+            if flyKeys.W then moveDirection = moveDirection + camera.CFrame.LookVector end
+            if flyKeys.S then moveDirection = moveDirection - camera.CFrame.LookVector end
+            if flyKeys.A then moveDirection = moveDirection - camera.CFrame.RightVector end
+            if flyKeys.D then moveDirection = moveDirection + camera.CFrame.RightVector end
+            if flyKeys.Space then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
+            if flyKeys.LeftShift then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
+
+            if moveDirection.Magnitude > 0 then moveDirection = moveDirection.Unit end
+
+            BV.Velocity = moveDirection * flySpeed; BG.CFrame = camera.CFrame
+        end)
+
+        local inputBeganConnection = UserInputService.InputBegan:Connect(function(input)
+            if input.KeyCode == Enum.KeyCode.W then flyKeys.W = true elseif input.KeyCode == Enum.KeyCode.A then flyKeys.A = true elseif input.KeyCode == Enum.KeyCode.S then flyKeys.S = true elseif input.KeyCode == Enum.KeyCode.D then flyKeys.D = true elseif input.KeyCode == Enum.KeyCode.Space then flyKeys.Space = true elseif input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.LeftShift = true end
+        end)
+
+        local inputEndedConnection = UserInputService.InputEnded:Connect(function(input)
+            if input.KeyCode == Enum.KeyCode.W then flyKeys.W = false elseif input.KeyCode == Enum.KeyCode.A then flyKeys.A = false elseif input.KeyCode == Enum.KeyCode.S then flyKeys.S = false elseif input.KeyCode == Enum.KeyCode.D then flyKeys.D = false elseif input.KeyCode == Enum.KeyCode.Space then flyKeys.Space = false elseif input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.LeftShift = false end
+        end)
+
+        return BV, BG, inputBeganConnection, inputEndedConnection
+    end
+
+    FlyToggle.MouseButton1Click:Connect(function()
+        flyEnabled = not flyEnabled
+        FlyToggle.Text = flyEnabled and "✈️ Fly: ON (WASD + Space/Shift)" or "✈️ Fly: OFF"
+        tweenProperty(FlyToggle, {BackgroundColor3 = flyEnabled and Color3.fromRGB(100, 150, 255) or Color3.fromRGB(50, 50, 70)}, 0.2)
+
+        if flyEnabled then
+            local bv, bg, inputBegan, inputEnded = startFly(); flyObjects = {bv, bg, inputBegan, inputEnded}
+        else
+            if flyConnection then flyConnection:Disconnect() end
+            for _, obj in ipairs(flyObjects) do if obj then if typeof(obj) == "Instance" then obj:Destroy() else obj:Disconnect() end end end
+            flyObjects = {}; flyKeys = {W = false, A = false, S = false, D = false, Space = false, LeftShift = false}
+        end
+    end)
+
+    -- Noclip Control
+    local noclipEnabled = false
+    local noclipConnection
+
+    local NoclipToggle = createToggleButton(miscButtons, "👻 Noclip: OFF")
+    NoclipToggle.LayoutOrder = 5
+    NoclipToggle.MouseButton1Click:Connect(function()
+        noclipEnabled = not noclipEnabled
+        NoclipToggle.Text = noclipEnabled and "👻 Noclip: ON" or "👻 Noclip: OFF"
+        tweenProperty(NoclipToggle, {BackgroundColor3 = noclipEnabled and Color3.fromRGB(150, 255, 150) or Color3.fromRGB(50, 50, 70)}, 0.2)
+
+        if noclipEnabled then
+            noclipConnection = RunService.Stepped:Connect(function()
+                local char = player.Character
+                if char then
+                    for _, part in pairs(char:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end
+                end
+            end)
+        else
+            if noclipConnection then noclipConnection:Disconnect() end
             local char = player.Character
             if char then
-                for _, part in pairs(char:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end
+                for _, part in pairs(char:GetDescendants()) do if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then part.CanCollide = true end end
             end
-        end)
-    else
-        if noclipConnection then noclipConnection:Disconnect() end
-        local char = player.Character
-        if char then
-            for _, part in pairs(char:GetDescendants()) do if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then part.CanCollide = true end end
         end
-    end
-end)
+    end)
+end
+
+--------------------------------------------------------------------------------
+-- Build all the UI Tabs
+--------------------------------------------------------------------------------
+buildAutoSkillTab()
+buildStylesTab()
+buildRelicsTab()
+buildPlayersTab()
+buildTeleportsTab()
+buildAutoPunchTab()
+buildMiscTab()
+--------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 -- Tab Button Connections (with animated transitions)
@@ -1877,26 +2224,11 @@ miscTabButton.MouseButton1Click:Connect(function() showTab(miscTabButton, miscFr
 -- Stop All Loops on GUI Close
 --------------------------------------------------------------------------------
 local function stopAllLogic()
-    autoSkillEnabled = false
-    if autoSkillTargetConnection and typeof(autoSkillTargetConnection) == "RBXScriptConnection" then autoSkillTargetConnection:Disconnect() end
-    if autoSkillAttackConnection then task.cancel(autoSkillAttackConnection) end
-    
-    relicTeleportEnabled = false
-    for plrName,_ in pairs(playerAutoKillToggles) do playerAutoKillToggles[plrName] = false end
-    
-    autoPunchEnabled = false
-    if autoPunchTargetConnection and typeof(autoPunchTargetConnection) == "RBXScriptConnection" then autoPunchTargetConnection:Disconnect() end
-    if autoPunchAttackConnection then task.cancel(autoPunchAttackConnection) end
-    
-    walkspeedEnabled = false; if walkspeedConnection then walkspeedConnection:Disconnect() end
-    jumppowerEnabled = false; if jumppowerConnection then jumppowerConnection:Disconnect() end
-    infJumpEnabled = false; if infJumpConnection then infJumpConnection:Disconnect() end
-    flyEnabled = false; if flyConnection then flyConnection:Disconnect() end
-    for _, obj in ipairs(flyObjects) do if obj then if typeof(obj) == "Instance" then obj:Destroy() else obj:Disconnect() end end end
-    noclipEnabled = false; if noclipConnection then noclipConnection:Disconnect() end
-    
     local char = player.Character
-    if char and char:FindFirstChild("Humanoid") then char.Humanoid.WalkSpeed = 16; char.Humanoid.JumpPower = 50 end
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = 16
+        char.Humanoid.JumpPower = 50
+    end
 end
 
 CloseButton.MouseButton1Click:Connect(function()
