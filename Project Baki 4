@@ -1701,7 +1701,7 @@ local function buildAutoPunchTab()
                                     pcall(function()
                                         local combatRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ClientToServer"):WaitForChild("BasicCombat")
                                         if combatRemote then
-                                            combatRemote:FireServer("Light Punche", 1, targetHum, false, false)
+                                            combatRemote:FireServer("Light Punchy", 1, targetHum, false, false)
                                         end
                                     end)
                                     RunService.Heartbeat:Wait()
